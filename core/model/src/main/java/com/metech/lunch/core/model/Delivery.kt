@@ -31,6 +31,8 @@ data class RecipientContact(val name: String, val phone: String)
 
 @Serializable
 enum class BatchStatus {
+    /** Created by the owner but no partner yet; partners never see these. */
+    @SerialName("unassigned") UNASSIGNED,
     @SerialName("assigned") ASSIGNED,
     @SerialName("picked_up") PICKED_UP,
     @SerialName("in_transit") IN_TRANSIT,

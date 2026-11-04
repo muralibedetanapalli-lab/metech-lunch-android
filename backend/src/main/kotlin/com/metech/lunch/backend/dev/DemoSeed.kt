@@ -46,10 +46,11 @@ class DemoSeed(private val db: Db, private val clock: Clock) {
             menuItem("meal-chicken-biryani", "Chicken biryani", "Hyderabadi dum biryani with raita", 16000, listOf("non-veg"), listOf("dairy"))
             menuItem("meal-curd-rice", "Curd rice", "Tempered curd rice with pickle", 8000, listOf("veg"), listOf("dairy"))
 
-            user("+919999900000", UserRole.OWNER, "Demo Owner")
-            user("+919999900001", UserRole.DELIVERY_PARTNER, "Ravi (partner)")
             log.info("Demo data created")
         }
+        user("+919999900000", UserRole.OWNER, "Demo Owner")
+        user("+919999900001", UserRole.DELIVERY_PARTNER, "Ravi (partner)")
+        user("+919999900003", UserRole.KITCHEN_STAFF, "Kitchen Lead")
 
         // Keep a menu published for today and the next 6 days.
         val today = clock.instant().atZone(ZoneId.of("Asia/Kolkata")).toLocalDate()
@@ -108,6 +109,8 @@ class DemoSeed(private val db: Db, private val clock: Clock) {
     }
 
     private fun user(phone: String, role: UserRole, name: String) {
+        val exists = Users.selectAll().where { (Users.phone eq phone) and (Users.role eq role.wire()) }.any()
+        if (exists) return
         Users.insert {
             it[id] = newId()
             it[Users.phone] = phone

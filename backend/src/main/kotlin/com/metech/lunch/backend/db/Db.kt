@@ -7,12 +7,14 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.flywaydb.core.Flyway
 import org.jetbrains.exposed.sql.Database
+import org.jetbrains.exposed.sql.DatabaseConfig
 import org.jetbrains.exposed.sql.Transaction
 import org.jetbrains.exposed.sql.transactions.transaction
 import javax.sql.DataSource
 
 class Db(val dataSource: DataSource) {
-    val database: Database = Database.connect(dataSource)
+    // No automatic retries: a constraint violation is an answer, not a transient failure.
+    val database: Database = Database.connect(dataSource, databaseConfig = DatabaseConfig { defaultMaxAttempts = 1 })
 
     fun migrate() {
         Flyway.configure()

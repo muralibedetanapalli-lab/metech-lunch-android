@@ -1,7 +1,11 @@
 package com.metech.lunch.backend
 
 import com.auth0.jwt.JWT
+import com.metech.lunch.backend.admin.CatalogAdmin
+import com.metech.lunch.backend.admin.OperationsAdmin
+import com.metech.lunch.backend.admin.OwnerAdmin
 import com.metech.lunch.backend.auth.AuthService
+import com.metech.lunch.backend.routes.adminRoutes
 import com.metech.lunch.backend.auth.LoggingOtpSender
 import com.metech.lunch.backend.auth.OtpSender
 import com.metech.lunch.backend.common.ApiException
@@ -59,6 +63,9 @@ class Services(
     val payments = PaymentService(db, clock, menu, mapOf(mockGateway.name to mockGateway))
     val orders = OrderService(db, clock, menu, gateway)
     val delivery = DeliveryService(db, clock)
+    val catalog = CatalogAdmin(db, clock, menu)
+    val ops = OperationsAdmin(db, clock, menu)
+    val owner = OwnerAdmin(db, clock, menu, ops, payments.gateways)
 }
 
 fun main() {
@@ -74,6 +81,7 @@ object AuthProviders {
     const val CUSTOMER = "customer"
     const val PARTNER = "partner"
     const val STAFF = "staff"
+    const val OWNER = "owner"
     const val ANY = "any"
 }
 
@@ -144,6 +152,7 @@ fun Application.module(services: Services) {
         jwtFor(AuthProviders.CUSTOMER, setOf(UserRole.CUSTOMER))
         jwtFor(AuthProviders.PARTNER, setOf(UserRole.DELIVERY_PARTNER))
         jwtFor(AuthProviders.STAFF, setOf(UserRole.OWNER, UserRole.KITCHEN_STAFF))
+        jwtFor(AuthProviders.OWNER, setOf(UserRole.OWNER))
         jwtFor(AuthProviders.ANY, UserRole.entries.toSet())
     }
 
@@ -154,6 +163,7 @@ fun Application.module(services: Services) {
             customerRoutes(services)
             partnerRoutes(services)
             paymentRoutes(services)
+            adminRoutes(services)
         }
     }
 }

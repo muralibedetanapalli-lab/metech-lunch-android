@@ -1,10 +1,11 @@
 # Metech Lunch
 
-Employee lunch ordering platform: a customer Android app, a delivery partner Android app, an owner/kitchen web dashboard (coming next), and the backend they share.
+Employee lunch ordering platform: a customer Android app, a delivery partner Android app, an owner/kitchen web dashboard, and the backend they share.
 
 | Module | What it is |
 |---|---|
-| `backend` | Ktor + PostgreSQL API: OTP login, menus, orders, payments, delivery batches |
+| `backend` | Ktor + PostgreSQL API: OTP login, menus, orders, payments, delivery batches, admin API |
+| `dashboard` | React + TypeScript (Vite) owner and kitchen dashboard |
 | `app-customer` | Employee app: login, office selection, today's menu, cart, payment, order status and history |
 | `app-delivery` | Delivery partner app: login (batches, pickup and handover screens next) |
 | `core:model` | Kotlin API models shared by the backend and both apps |
@@ -67,8 +68,46 @@ The tests run against an embedded Postgres. They cover the acceptance checks fro
 - duplicate and forged payment callbacks
 - idempotent order placement
 - cancellation and refund rules
-- role isolation
+- role isolation, including kitchen staff versus owner
 - delivery pickup count, handover OTPs, and partial or failed delivery
+- kitchen totals and batches that reconcile with confirmed orders
+- refund approval and rejection
+- menu changes that can't undercut meals already sold
+- reports and CSV export, including protection against spreadsheet formula injection
+
+## Run the dashboard
+
+Start the backend first (`./gradlew :backend:runDev`), then:
+
+```bash
+cd dashboard
+```
+
+```bash
+npm install
+```
+
+```bash
+npm run dev
+```
+
+Open http://localhost:5173. During development, `/api` calls are forwarded to the backend on port 8080.
+
+Sign in as **Owner** with `+919999900000`, or as **Kitchen staff** with `+919999900003`. The OTP is `123456`.
+
+| Page | Who | What it does |
+|---|---|---|
+| Overview | Everyone | The day's orders by status, meals to prepare, open issues; owners also see sales and refunds |
+| Kitchen prep | Everyone | Meal totals, packing lists by office and drop point (printable), and "Start preparation" after the cutoff |
+| Dispatch | Everyone | Create batches from paid orders, assign a delivery partner, optional office-coordinator code, delivery issues |
+| Menu | Everyone | Publish the day's meals, prices and capacity. Owners also edit the meal catalogue |
+| Orders | Owner | Every order with customer, payment reference and status; CSV export; start a refund |
+| Refunds | Owner | Approve (sends the refund to the gateway) or reject (the order goes back to confirmed) |
+| Reports | Owner | Sales, refunds, meals by day, meal and office totals for a date range; CSV export |
+| People | Owner | Add or deactivate delivery partners, kitchen staff and owners; customer list |
+| Settings | Owner | Kitchen name, address and cutoff time; offices and drop points; activity log |
+
+Kitchen staff cannot reach financial, people or settings endpoints; the backend enforces this, not just the menu. The production build is `npm run build`, which writes static files to `dashboard/dist/`. Serve them from the same domain as the API, or set `CORS_ORIGINS`.
 
 ## Run the Android apps
 

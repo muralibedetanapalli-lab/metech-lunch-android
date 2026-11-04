@@ -23,6 +23,15 @@ interface PaymentGateway {
 
     /** Verifies the callback signature and parses it. Returns null if the signature is invalid. */
     fun parseWebhook(headers: Map<String, String>, body: String): GatewayEvent?
+
+    /** Asks the gateway to refund a verified payment. */
+    fun refund(gatewayRef: String, amountPaise: Long): RefundResult
+}
+
+sealed interface RefundResult {
+    /** The gateway has refunded (or accepted the refund for processing). */
+    data class Accepted(val refundRef: String) : RefundResult
+    data class Rejected(val reason: String) : RefundResult
 }
 
 @Serializable
@@ -43,6 +52,9 @@ class MockGateway(private val publicBaseUrl: String, private val secret: String)
         val parsed = runCatching { Json.decodeFromString(MockWebhookBody.serializer(), body) }.getOrNull() ?: return null
         return GatewayEvent(parsed.eventId, parsed.gatewayRef, parsed.status == "success", body)
     }
+
+    override fun refund(gatewayRef: String, amountPaise: Long): RefundResult =
+        RefundResult.Accepted("mock_rfnd_" + randomToken(8))
 
     fun sign(body: String): String {
         val mac = Mac.getInstance("HmacSHA256")
