@@ -7,7 +7,7 @@ Employee lunch ordering platform: a customer Android app, a delivery partner And
 | `backend` | Ktor + PostgreSQL API: OTP login, menus, orders, payments, delivery batches, admin API |
 | `dashboard` | React + TypeScript (Vite) owner and kitchen dashboard |
 | `app-customer` | Employee app: login, office selection, today's menu, cart, payment, order status and history |
-| `app-delivery` | Delivery partner app: login (batches, pickup and handover screens next) |
+| `app-delivery` | Delivery partner app: assigned batches, pickup count, navigation and call, OTP handover, problem reports, history |
 | `core:model` | Kotlin API models shared by the backend and both apps |
 | `core:network` | Retrofit `LunchApi`, token refresh, error handling |
 | `core:auth` | Session storage and OTP login |

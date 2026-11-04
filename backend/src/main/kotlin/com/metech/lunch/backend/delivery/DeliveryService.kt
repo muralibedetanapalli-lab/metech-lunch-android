@@ -68,7 +68,7 @@ class DeliveryService(private val db: Db, private val clock: Clock) {
         }
         val expected = mealCount(batchId)
         if (confirmedMealCount != expected) {
-            rejected(ErrorCodes.PICKUP_COUNT_MISMATCH, "Expected $expected meals but $confirmedMealCount were confirmed. Recount with the kitchen.")
+            rejected(ErrorCodes.PICKUP_COUNT_MISMATCH, "This batch has $expected meal${if (expected == 1) "" else "s"} but you counted $confirmedMealCount. Recount with the kitchen.")
         }
         val now = clock.nowUtc()
         DeliveryBatches.update({ DeliveryBatches.id eq batchId }) {
