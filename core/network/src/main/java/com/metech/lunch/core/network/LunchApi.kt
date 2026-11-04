@@ -12,16 +12,18 @@ import com.metech.lunch.core.model.OtpVerifyRequest
 import com.metech.lunch.core.model.PickupConfirmation
 import com.metech.lunch.core.model.PlaceOrderRequest
 import com.metech.lunch.core.model.PlaceOrderResponse
+import com.metech.lunch.core.model.UpdateProfileRequest
 import com.metech.lunch.core.model.UserProfile
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
+import retrofit2.http.PUT
 import retrofit2.http.Path
 import retrofit2.http.Query
 
 /**
- * Backend contract shared by both apps. Endpoint paths are placeholders until the
- * backend API is agreed.
+ * Backend contract shared by both apps. Implemented by the Ktor server in /backend
+ * (see backend/.../routes/Routes.kt); paths are relative to `<host>/api/`.
  */
 interface LunchApi {
 
@@ -34,6 +36,9 @@ interface LunchApi {
 
     @GET("me")
     suspend fun me(): UserProfile
+
+    @PUT("me")
+    suspend fun updateProfile(@Body body: UpdateProfileRequest): UserProfile
 
     // --- Customer ---
     @GET("offices")

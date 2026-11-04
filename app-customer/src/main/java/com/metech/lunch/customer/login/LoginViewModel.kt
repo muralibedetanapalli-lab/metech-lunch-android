@@ -3,6 +3,7 @@ package com.metech.lunch.customer.login
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.metech.lunch.core.auth.AuthRepository
+import com.metech.lunch.core.network.ApiResult
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -15,15 +16,16 @@ class LoginViewModel(private val auth: AuthRepository) : ViewModel() {
 
     fun requestOtp(phone: String) {
         viewModelScope.launch {
-            _error.value = auth.requestOtp(phone).exceptionOrNull()?.let { "Could not send OTP" }
+            _error.value = (auth.requestOtp(phone) as? ApiResult.Failure)?.message
         }
     }
 
     fun verifyOtp(phone: String, otp: String, onSuccess: () -> Unit) {
         viewModelScope.launch {
-            auth.verifyOtp(phone, otp)
-                .onSuccess { _error.value = null; onSuccess() }
-                .onFailure { _error.value = "Invalid OTP" }
+            when (val result = auth.verifyOtp(phone, otp)) {
+                is ApiResult.Success -> { _error.value = null; onSuccess() }
+                is ApiResult.Failure -> _error.value = result.message
+            }
         }
     }
 }

@@ -3,9 +3,11 @@ package com.metech.lunch.core.auth
 import com.metech.lunch.core.model.OtpRequest
 import com.metech.lunch.core.model.OtpVerifyRequest
 import com.metech.lunch.core.model.UserRole
+import com.metech.lunch.core.network.ApiResult
 import com.metech.lunch.core.network.LunchApi
+import com.metech.lunch.core.network.apiCall
 
-/** Phone + OTP login for a given app role. The provider is still to be confirmed with the client. */
+/** Phone + OTP login for one app role. */
 class AuthRepository(
     private val api: LunchApi,
     private val session: SessionStore,
@@ -13,14 +15,14 @@ class AuthRepository(
 ) {
     suspend fun isLoggedIn(): Boolean = session.hasSession()
 
-    suspend fun requestOtp(phone: String): Result<Unit> = runCatching {
-        api.requestOtp(OtpRequest(phone = phone, role = role))
-    }
+    suspend fun requestOtp(phone: String): ApiResult<Unit> =
+        apiCall { api.requestOtp(OtpRequest(phone = phone, role = role)) }
 
-    suspend fun verifyOtp(phone: String, otp: String): Result<Unit> = runCatching {
-        val tokens = api.verifyOtp(OtpVerifyRequest(phone = phone, otp = otp, role = role))
-        session.save(tokens)
-    }
+    suspend fun verifyOtp(phone: String, otp: String): ApiResult<Unit> =
+        apiCall {
+            val tokens = api.verifyOtp(OtpVerifyRequest(phone = phone, otp = otp, role = role))
+            session.save(tokens)
+        }
 
     suspend fun logout() = session.clear()
 }

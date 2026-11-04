@@ -16,6 +16,8 @@ data class Order(
     val status: OrderStatus,
     val payment: PaymentInfo,
     val createdAt: String,
+    /** Shown to the customer; given to the delivery partner at handover. */
+    val deliveryOtp: String? = null,
 )
 
 @Serializable

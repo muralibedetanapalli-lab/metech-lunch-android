@@ -1,37 +1,96 @@
-# Metech Lunch — Android
+# Metech Lunch
 
-Android apps for the Metech employee lunch ordering platform. One Gradle project builds two apps that share their core code.
+Employee lunch ordering platform: a customer Android app, a delivery partner Android app, an owner/kitchen web dashboard (coming next), and the backend they share.
 
 | Module | What it is |
 |---|---|
-| `app-customer` | Employee app: login, office selection, daily menu, order and payment, order status |
-| `app-delivery` | Delivery partner app: assigned batches, pickup, handover (OTP), issue reporting |
-| `core:model` | Pure Kotlin API and domain models (orders, menu, batches, auth) |
-| `core:network` | Retrofit `LunchApi` and the OkHttp client with the auth header |
-| `core:auth` | `SessionStore` (token storage) and `AuthRepository` (phone + OTP) |
-| `core:ui` | Compose theme, shared login screen, formatting helpers |
+| `backend` | Ktor + PostgreSQL API: OTP login, menus, orders, payments, delivery batches |
+| `app-customer` | Employee app: login, office selection, today's menu, cart, payment, order status and history |
+| `app-delivery` | Delivery partner app: login (batches, pickup and handover screens next) |
+| `core:model` | Kotlin API models shared by the backend and both apps |
+| `core:network` | Retrofit `LunchApi`, token refresh, error handling |
+| `core:auth` | Session storage and OTP login |
+| `core:ui` | Compose theme, shared login screen, formatting |
 
-The owner and kitchen web dashboard and the backend are not in this repo.
+## Run the backend locally
 
-## Build
+The simplest option needs no database install and no Docker. It runs an embedded Postgres with demo data:
 
-Requires the Android SDK (API 36) and JDK 17 or newer. Android Studio's bundled JBR works.
+```bash
+./gradlew :backend:runDev
+```
+
+The API listens on `http://localhost:8080/api`. Every phone number's OTP is `123456`.
+
+Demo accounts:
+- **Customer:** any number. The app asks for a name and office the first time.
+- **Delivery partner:** `+919999900001`.
+- **Owner:** `+919999900000`.
+
+Ordering closes at 10:00 India time. To try ordering later in the day, make the server pretend it's morning:
+
+```bash
+DEV_PRETEND_TIME=09:00 ./gradlew :backend:runDev
+```
+
+To use a real Postgres instead, start one with Docker. It runs on port 5433 so it doesn't clash with a local install:
+
+```bash
+docker compose up -d
+```
+
+```bash
+./gradlew :backend:run
+```
+
+Payments use a **mock gateway** in dev. The checkout link opens a test page with Pay and Fail buttons, and no money moves.
+
+### Backend configuration (environment variables)
+
+| Variable | Purpose | Dev default |
+|---|---|---|
+| `APP_ENV` | `production` turns off the dev OTP, mock payments and demo data, and makes secrets required | (dev) |
+| `DATABASE_URL`, `DATABASE_USER`, `DATABASE_PASSWORD` | Postgres connection | `localhost:5433/metech_lunch`, `metech` / `metech` |
+| `JWT_SECRET` | Signs access tokens | dev value |
+| `PUBLIC_BASE_URL` | Public URL of the API, used in checkout links | `http://localhost:8080` |
+| `CORS_ORIGINS` | Dashboard origins, comma-separated | `http://localhost:5173` |
+
+### Tests
+
+```bash
+./gradlew :backend:test
+```
+
+The tests run against an embedded Postgres. They cover the acceptance checks from the scope:
+- the 10 AM cutoff, including late payments for orders placed before it
+- meal capacity, including unpaid orders inside the payment hold window
+- duplicate and forged payment callbacks
+- idempotent order placement
+- cancellation and refund rules
+- role isolation
+- delivery pickup count, handover OTPs, and partial or failed delivery
+
+## Run the Android apps
 
 ```bash
 ./gradlew assembleDebug
 ```
 
-APKs are written to `app-customer/build/outputs/apk/debug/` and `app-delivery/build/outputs/apk/debug/`.
+Debug builds call `http://10.0.2.2:8080/api/`, which is your computer as seen from the Android emulator. Start `runDev` first.
 
-Debug builds call `http://10.0.2.2:8080/api/`, which is a local backend as seen from the emulator. The release URL is a placeholder in each app's `build.gradle.kts`.
+## Business rules (all enforced by the server)
 
-## Rules the apps rely on the server for
-
-- The 10 AM same-day cutoff, service area and meal capacity are enforced by the backend. The apps only display the result.
-- An order is confirmed only after the backend verifies the payment. The app reads order and payment state from the server and never trusts the gateway redirect.
-- `PlaceOrderRequest.idempotencyKey` guards against duplicate orders.
-- Every order, menu and batch carries a `kitchenId` so more kitchens can be added later.
+- **Same-day ordering:** orders are accepted until the kitchen's cutoff (10:00 Asia/Kolkata by default).
+- **Payment confirmation:** an order is confirmed only by a verified gateway callback, never by the app's redirect. Callbacks are recorded once, so replays change nothing.
+- **Payment hold:** an unpaid order holds its meals for 15 minutes. If payment arrives after the hold and the meals are gone, the order is cancelled and a refund is requested.
+- **Duplicate orders:** each checkout sends an `idempotencyKey`, so retries never create a second order.
+- **Cancellation:** a paid order can be cancelled before the cutoff, and the refund then waits for owner approval.
+- **Handover:** the partner enters either the customer's 4-digit code or the office coordinator's batch code.
+- **Multiple kitchens:** every record carries a `kitchenId`, ready for more kitchens later.
 
 ## Open decisions (pending with the client)
 
-The payment gateway, login/OTP provider, timezone and operating days, refund policy, and handover model (per employee or office coordinator). The API paths in `LunchApi` are placeholders until the backend contract is agreed.
+- **Payment gateway:** it plugs in behind the `PaymentGateway` interface.
+- **SMS/OTP provider:** behind the `OtpSender` interface.
+- **Business rules:** operating days, the refund policy, and whether employees or an office coordinator confirm handover.
+- **Hosting.**

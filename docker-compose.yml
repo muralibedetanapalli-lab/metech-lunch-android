@@ -1,0 +1,17 @@
+# Local development database for the backend.
+#   docker compose up -d
+#   ./gradlew :backend:run
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: metech_lunch
+      POSTGRES_USER: metech
+      POSTGRES_PASSWORD: metech
+    ports:
+      - "5433:5432" # 5433 so it does not clash with a locally installed PostgreSQL
+    volumes:
+      - metech-lunch-db:/var/lib/postgresql/data
+
+volumes:
+  metech-lunch-db:
