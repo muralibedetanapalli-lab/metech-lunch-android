@@ -2,7 +2,27 @@ package com.metech.lunch.backend
 
 import java.time.Duration
 
-data class DbConfig(val url: String, val user: String, val password: String)
+data class DbConfig(val url: String, val user: String, val password: String) {
+    /** Host part of the JDBC URL, for log messages (never includes credentials). */
+    val host: String get() = url.substringAfter("//").substringBefore("/").substringBefore("?")
+
+    override fun toString() = "DbConfig(url=$url, user=$user, password=***)"
+
+    companion object {
+        private val LOCAL_HOSTS = listOf("localhost", "127.0.0.1", "[::1]")
+
+        /**
+         * Hosted databases (Azure, AWS...) must use TLS. Adds `sslmode=require` to a remote
+         * URL that does not set an sslmode, so the password never travels in clear text.
+         */
+        fun withTls(url: String): String {
+            if ("sslmode=" in url) return url
+            val host = url.substringAfter("//").substringBefore("/").substringBefore(":")
+            if (LOCAL_HOSTS.any { host == it }) return url
+            return url + (if ("?" in url) "&" else "?") + "sslmode=require"
+        }
+    }
+}
 
 data class AppConfig(
     val production: Boolean,
@@ -25,9 +45,11 @@ data class AppConfig(
     val mockWebhookSecret: String = "dev-mock-webhook-secret",
     val seedDemoData: Boolean = false,
     val corsOrigins: List<String> = emptyList(),
+    /** Built dashboard (dashboard/dist) to serve at `/`, so the dashboard and API share one address. */
+    val dashboardDir: String? = null,
 ) {
     companion object {
-        fun fromEnv(env: Map<String, String> = System.getenv()): AppConfig {
+        fun fromEnv(env: Map<String, String> = EnvFile.load()): AppConfig {
             val production = env["APP_ENV"] == "production"
             fun required(key: String, devDefault: String): String =
                 env[key] ?: if (production) error("$key must be set in production") else devDefault
@@ -38,7 +60,7 @@ data class AppConfig(
                 port = port,
                 publicBaseUrl = env["PUBLIC_BASE_URL"] ?: "http://localhost:$port",
                 db = DbConfig(
-                    url = required("DATABASE_URL", "jdbc:postgresql://localhost:5433/metech_lunch"),
+                    url = DbConfig.withTls(required("DATABASE_URL", "jdbc:postgresql://localhost:5433/metech_lunch")),
                     user = required("DATABASE_USER", "metech"),
                     password = required("DATABASE_PASSWORD", "metech"),
                 ),
@@ -46,9 +68,12 @@ data class AppConfig(
                 devFixedOtp = if (production) null else env["DEV_FIXED_OTP"] ?: "123456",
                 mockPaymentsEnabled = !production && env["MOCK_PAYMENTS"] != "false",
                 mockWebhookSecret = env["MOCK_WEBHOOK_SECRET"] ?: "dev-mock-webhook-secret",
-                seedDemoData = !production && env["SEED_DEMO_DATA"] != "false",
+                // Opt-in only: never put demo accounts into a real database by accident.
+                // (`./gradlew :backend:runDev` seeds its own embedded database regardless.)
+                seedDemoData = !production && env["SEED_DEMO_DATA"] == "true",
                 corsOrigins = env["CORS_ORIGINS"]?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() }
                     ?: if (production) emptyList() else listOf("http://localhost:5173"),
+                dashboardDir = env["DASHBOARD_DIR"]?.takeIf { it.isNotBlank() },
             )
         }
     }

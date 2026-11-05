@@ -16,3 +16,7 @@ keystore.properties
 .idea/
 *.iml
 .DS_Store
+
+# Local secrets (database password, JWT secret)
+.env
+!.env.example

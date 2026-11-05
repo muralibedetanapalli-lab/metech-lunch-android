@@ -1,0 +1,4 @@
+# Only the built backend and dashboard go into the image.
+*
+!backend/build/install/
+!dashboard/dist/

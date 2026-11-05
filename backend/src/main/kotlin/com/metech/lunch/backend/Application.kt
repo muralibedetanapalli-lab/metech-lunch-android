@@ -34,6 +34,7 @@ import io.ktor.server.auth.Authentication
 import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.jwt.jwt
 import io.ktor.server.engine.embeddedServer
+import io.ktor.server.http.content.staticFiles
 import io.ktor.server.netty.Netty
 import io.ktor.server.plugins.BadRequestException
 import io.ktor.server.plugins.calllogging.CallLogging
@@ -46,6 +47,7 @@ import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
 import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
+import java.io.File
 import java.time.Clock
 
 /** Everything the HTTP layer needs, built once at startup (or per test). */
@@ -68,13 +70,44 @@ class Services(
     val owner = OwnerAdmin(db, clock, menu, ops, payments.gateways)
 }
 
-fun main() {
+/**
+ * `run`            starts the API (migrating the database first).
+ * `run --args=migrate` only applies pending migrations and exits; use it for a first
+ * connection check or as a release step before starting new servers.
+ */
+fun main(args: Array<String>) {
+    val log = LoggerFactory.getLogger("startup")
     val config = AppConfig.fromEnv()
-    val db = Db.connect(config.db)
-    db.migrate()
+    log.info("Connecting to PostgreSQL at {} as {}", config.db.host, config.db.user)
+    val db = try {
+        Db.connect(config.db).also { it.migrate() }
+    } catch (e: Exception) {
+        log.error(
+            "Could not use the database at {}: {}\n" +
+                "Check DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD. For Azure, also check that the server's " +
+                "firewall allows this machine's IP and that the database exists.",
+            config.db.host, rootMessage(e),
+        )
+        kotlin.system.exitProcess(1)
+    }
+    if (args.firstOrNull() == "migrate") {
+        log.info("Database is up to date.")
+        kotlin.system.exitProcess(0)
+    }
     val services = Services(config, db)
     if (config.seedDemoData) DemoSeed(db, services.clock).run()
     embeddedServer(Netty, port = config.port, host = "0.0.0.0") { module(services) }.start(wait = true)
+}
+
+private fun rootMessage(e: Throwable): String {
+    var cause: Throwable = e
+    while (cause.cause != null && cause.cause !== cause) cause = cause.cause!!
+    val kind = when (cause) {
+        is java.net.UnknownHostException -> "unknown host"
+        is java.net.ConnectException, is java.net.SocketTimeoutException -> "cannot connect (firewall or wrong port?)"
+        else -> cause.javaClass.simpleName
+    }
+    return "$kind: ${cause.message}"
 }
 
 object AuthProviders {
@@ -164,6 +197,14 @@ fun Application.module(services: Services) {
             partnerRoutes(services)
             paymentRoutes(services)
             adminRoutes(services)
+            // Unknown API paths stay JSON 404s instead of falling through to the dashboard.
+            route("{...}") {
+                handle { call.respond(HttpStatusCode.NotFound, ApiError(ErrorCodes.NOT_FOUND, "Not found")) }
+            }
+        }
+        config.dashboardDir?.let { dir ->
+            // Single-page app: any path that isn't a file gets index.html, and the dashboard routes it.
+            staticFiles("/", File(dir)) { default("index.html") }
         }
     }
 }

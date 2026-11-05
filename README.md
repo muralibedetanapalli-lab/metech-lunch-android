@@ -44,7 +44,52 @@ docker compose up -d
 ./gradlew :backend:run
 ```
 
+### Use Azure Database for PostgreSQL
+
+The backend can use an existing Azure database. Settings go in `backend/.env`, which git ignores. Copy `backend/.env.example` to start.
+
+1. **Find the server name** in the Azure portal, under the PostgreSQL server's *Overview*, for example `my-server.postgres.database.azure.com`.
+2. **Create a database** for the app, for example `metech_lunch`. Use *Databases → Add* in the portal, or run `CREATE DATABASE metech_lunch;`.
+3. **Allow your IP** under *Networking → Firewall rules → Add current client IP address*. Do the same later for the server that hosts the API, or use *Allow public access from Azure services*.
+4. **Fill in `backend/.env`:**
+   ```
+   DATABASE_URL=jdbc:postgresql://my-server.postgres.database.azure.com:5432/metech_lunch
+   DATABASE_USER=<admin login>
+   DATABASE_PASSWORD=<password>
+   ```
+   On a Flexible Server, use the admin login as-is. TLS (`sslmode=require`) is added automatically.
+5. **Create the tables and check the connection:**
+   ```bash
+   ./gradlew :backend:run --args=migrate
+   ```
+6. **Start the API:**
+   ```bash
+   ./gradlew :backend:run
+   ```
+   Add `SEED_DEMO_DATA=true` to `.env` once if you want the demo kitchen, menu and test accounts in this database.
+
+Schema changes are versioned SQL files in `backend/src/main/resources/db/migration`, and they're applied automatically on start. Never edit a migration that has already run; add a new `V2__...sql` instead.
+
 Payments use a **mock gateway** in dev. The checkout link opens a test page with Pay and Fail buttons, and no money moves.
+
+### Deploy the pilot to Azure
+
+The pilot runs on **Azure Container Apps** as one app that serves both the API (`/api`) and the dashboard (`/`). It sits inside the virtual network of the private `synchealth-pg` server and uses its `lunch` database. It scales to zero when idle to stay within the Container Apps free allowance, so the first request after a quiet spell takes up to a minute.
+
+1. **Publish the image.** Every push to `main` that touches the backend or dashboard runs [`.github/workflows/image.yml`](.github/workflows/image.yml). It tests the backend, builds the dashboard and publishes `ghcr.io/muralibedetanapalli-lab/metech-lunch`. After the first run, make the package public under GitHub → *Packages → metech-lunch → Package settings*, so Azure can pull it without a password. The image contains no secrets.
+2. **Fill in `backend/.env`:** `DATABASE_USER`, `DATABASE_PASSWORD`, `JWT_SECRET`, and `DEV_FIXED_OTP` (the private sign-in code).
+3. **Deploy**, signed in with `az login`:
+   ```bash
+   bash deploy/azure.sh
+   ```
+   The first run creates the `rg-metech-lunch` resource group, a `snet-metech-lunch` subnet in `synchealth-vnet`, the Container Apps environment and the app, then prints the app's address. Later runs update the app. Pass a commit SHA to deploy a specific build: `bash deploy/azure.sh <sha>`.
+
+Until an SMS provider and a payment gateway are connected, the pilot runs in dev mode. Everyone signs in with `DEV_FIXED_OTP`, payments use the mock checkout page, and the demo kitchen, offices and accounts are added (`SEED_DEMO_DATA=true`). Don't put real orders or payments through it.
+
+Logs:
+```bash
+az containerapp logs show -g rg-metech-lunch -n metech-lunch --type console --tail 100
+```
 
 ### Backend configuration (environment variables)
 
@@ -55,6 +100,9 @@ Payments use a **mock gateway** in dev. The checkout link opens a test page with
 | `JWT_SECRET` | Signs access tokens | dev value |
 | `PUBLIC_BASE_URL` | Public URL of the API, used in checkout links | `http://localhost:8080` |
 | `CORS_ORIGINS` | Dashboard origins, comma-separated | `http://localhost:5173` |
+| `DASHBOARD_DIR` | Built dashboard to serve at `/` (set in the container image) | (not served) |
+| `DEV_FIXED_OTP` | Sign-in code for every account, dev and pilot only | `123456` |
+| `SEED_DEMO_DATA` | `true` adds the demo kitchen, offices, menu and accounts | `false` |
 
 ### Tests
 
