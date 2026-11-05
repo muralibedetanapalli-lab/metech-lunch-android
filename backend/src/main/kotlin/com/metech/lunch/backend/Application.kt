@@ -132,8 +132,14 @@ fun Application.module(services: Services) {
     install(CallLogging)
 
     if (config.corsOrigins.isNotEmpty()) {
+        // The app's own public address is always allowed. Behind an HTTPS proxy (Azure Container Apps)
+        // the server sees plain http, so CORS's same-origin check alone would reject the dashboard's
+        // own scripts, which browsers request with an Origin header.
+        val ownOrigin = config.publicBaseUrl.trimEnd('/').let { url ->
+            url.substringBefore("://") + "://" + url.substringAfter("://").substringBefore("/")
+        }
         install(CORS) {
-            config.corsOrigins.forEach { origin ->
+            (config.corsOrigins + ownOrigin).distinct().forEach { origin ->
                 val (scheme, host) = origin.split("://", limit = 2).let { it[0] to it[1] }
                 allowHost(host, schemes = listOf(scheme))
             }
