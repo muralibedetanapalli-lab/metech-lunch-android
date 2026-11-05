@@ -4,6 +4,8 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+val liveApiUrl: String = providers.gradleProperty("metech.liveApiUrl").get()
+
 android {
     namespace = "com.metech.lunch.customer"
     compileSdk = libs.versions.compileSdk.get().toInt()
@@ -23,10 +25,16 @@ android {
             applicationIdSuffix = ".debug"
         }
         release {
-            // TODO: production API URL once hosting is confirmed.
-            buildConfigField("String", "API_BASE_URL", "\"https://api.example.invalid/api/\"")
+            buildConfigField("String", "API_BASE_URL", "\"$liveApiUrl\"")
             isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+        }
+        // Debug-signed build against the live API: installs on any phone, alongside the debug app.
+        create("pilot") {
+            initWith(getByName("debug"))
+            buildConfigField("String", "API_BASE_URL", "\"$liveApiUrl\"")
+            applicationIdSuffix = ".pilot"
+            matchingFallbacks += listOf("debug")
         }
     }
 

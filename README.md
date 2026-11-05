@@ -163,7 +163,19 @@ Kitchen staff cannot reach financial, people or settings endpoints; the backend 
 ./gradlew assembleDebug
 ```
 
-Debug builds call `http://10.0.2.2:8080/api/`, which is your computer as seen from the Android emulator. Start `runDev` first.
+| Build | API it calls | Use it for |
+|---|---|---|
+| `debug` | `http://10.0.2.2:8080/api/`, your computer as seen from the emulator. Start `runDev` first. | Development |
+| `pilot` | The live Azure API (`metech.liveApiUrl` in `gradle.properties`) | Testing on real phones. It is debug-signed, so it installs anywhere, and it sits alongside the debug app. |
+| `release` | The live Azure API | The Play Store. It needs a signing key, which isn't set up yet. |
+
+Build the pilot apps, then share the APKs from `app-customer/build/outputs/apk/pilot/` and `app-delivery/build/outputs/apk/pilot/`:
+
+```bash
+./gradlew assemblePilot
+```
+
+Sign in with the pilot code (`DEV_FIXED_OTP` in `backend/.env`).
 
 ## Business rules (all enforced by the server)
 
