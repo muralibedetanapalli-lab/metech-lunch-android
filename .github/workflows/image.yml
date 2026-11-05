@@ -11,6 +11,7 @@ on:
       - "core/model/**"
       - "dashboard/**"
       - "gradle/**"
+      - "gradlew"
       - "*.gradle.kts"
       - "Dockerfile"
       - ".github/workflows/image.yml"
