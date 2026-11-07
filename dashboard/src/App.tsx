@@ -4,7 +4,8 @@ import { api, session } from "./api/client";
 import { useLoad } from "./api/hooks";
 import type { KitchenSettings, UserProfile } from "./api/types";
 import { Ctx, useApp } from "./context";
-import { prettyDate } from "./format";
+import { formatLeft, prettyDate, useCutoffCountdown } from "./format";
+import { Icon, Logo, type IconName } from "./components/icons";
 import LoginPage from "./pages/LoginPage";
 import OverviewPage from "./pages/OverviewPage";
 import OrdersPage from "./pages/OrdersPage";
@@ -44,7 +45,13 @@ function SignedIn() {
       </div>
     );
   }
-  if (!me.data || !kitchen.data || !date) return <div className="centered muted">Loading…</div>;
+  if (!me.data || !kitchen.data || !date) {
+    return (
+      <div className="centered">
+        <div className="pulse"><Logo size={64} /></div>
+      </div>
+    );
+  }
 
   const isOwner = me.data.role === "owner";
   return (
@@ -74,59 +81,96 @@ function SignedIn() {
 function Layout({ children }: { children: React.ReactNode }) {
   const { me, kitchen, isOwner, date, setDate } = useApp();
   const [menuOpen, setMenuOpen] = useState(false);
-  const links: [string, string, boolean][] = [
-    ["/", "Overview", true],
-    ["/orders", "Orders", isOwner],
-    ["/kitchen", "Kitchen prep", true],
-    ["/dispatch", "Dispatch", true],
-    ["/menu", "Menu", true],
-    ["/refunds", "Refunds", isOwner],
-    ["/reports", "Reports", isOwner],
-    ["/people", "People", isOwner],
-    ["/settings", "Settings", isOwner],
+  const daily: [string, string, IconName][] = [
+    ["/", "Overview", "home"],
+    ["/kitchen", "Kitchen prep", "chef"],
+    ["/dispatch", "Dispatch", "truck"],
+    ["/menu", "Menu", "book"],
   ];
+  const business: [string, string, IconName][] = [
+    ["/orders", "Orders", "receipt"],
+    ["/refunds", "Refunds", "refund"],
+    ["/reports", "Reports", "chart"],
+    ["/people", "People", "users"],
+    ["/settings", "Settings", "settings"],
+  ];
+  const name = me.name || me.phone;
   return (
     <div className="shell">
+      {menuOpen && <div className="scrim" onClick={() => setMenuOpen(false)} />}
       <aside className={menuOpen ? "sidebar open" : "sidebar"}>
         <div className="brand">
-          <strong>Metech Lunch</strong>
-          <span className="muted small">{kitchen.name}</span>
+          <Logo size={42} />
+          <div>
+            <strong>Metech Lunch</strong>
+            <span>{kitchen.name}</span>
+          </div>
         </div>
         <nav onClick={() => setMenuOpen(false)}>
-          {links
-            .filter(([, , show]) => show)
-            .map(([to, text]) => (
-              <NavLink key={to} to={to} end={to === "/"}>
-                {text}
-              </NavLink>
-            ))}
+          <div className="nav-label">Daily work</div>
+          {daily.map(([to, text, icon]) => (
+            <NavLink key={to} to={to} end={to === "/"}>
+              <Icon name={icon} />
+              {text}
+            </NavLink>
+          ))}
+          {isOwner && (
+            <>
+              <div className="nav-label">Business</div>
+              {business.map(([to, text, icon]) => (
+                <NavLink key={to} to={to}>
+                  <Icon name={icon} />
+                  {text}
+                </NavLink>
+              ))}
+            </>
+          )}
         </nav>
         <div className="who">
-          <div>{me.name || me.phone}</div>
-          <div className="muted small">{isOwner ? "Owner" : "Kitchen staff"}</div>
-          <button className="link" onClick={() => session.clear()}>
-            Sign out
+          <div className="avatar">{name.trim().charAt(0).toUpperCase()}</div>
+          <div className="who-text">
+            <div>{name}</div>
+            <div>{isOwner ? "Owner" : "Kitchen staff"}</div>
+          </div>
+          <button title="Sign out" aria-label="Sign out" onClick={() => session.clear()}>
+            <Icon name="logout" size={18} />
           </button>
         </div>
       </aside>
       <main>
         <header className="topbar no-print">
           <button className="menu-toggle" onClick={() => setMenuOpen(!menuOpen)} aria-label="Menu">
-            ☰
+            <Icon name="menu" size={22} />
           </button>
           <label className="date-pick">
-            <span className="muted small">Day</span>
+            <Icon name="calendar" size={18} />
             <input type="date" value={date} onChange={(e) => e.target.value && setDate(e.target.value)} />
           </label>
           {date !== kitchen.today && (
-            <button className="secondary" onClick={() => setDate(kitchen.today)}>
-              Today
+            <button className="secondary small" onClick={() => setDate(kitchen.today)}>
+              Back to today
             </button>
           )}
-          <span className="muted small grow">{prettyDate(date)} · cutoff {kitchen.cutoffTime.slice(0, 5)}</span>
+          <span className="muted small grow">{prettyDate(date)}</span>
+          {date === kitchen.today && <CutoffChip cutoff={kitchen.cutoffTime} timezone={kitchen.timezone} />}
         </header>
-        <div className="content">{children}</div>
+        <div className="content" key={date}>{children}</div>
       </main>
     </div>
+  );
+}
+
+/** "Open · 1h 12m left" until the cutoff, then "Closed at 10:00", using the kitchen's timezone. */
+function CutoffChip({ cutoff, timezone }: { cutoff: string; timezone: string }) {
+  const left = useCutoffCountdown(cutoff, timezone);
+  // Whether ordering is open is the server's call (see Overview); this chip only counts down.
+  if (left == null || left <= 0) {
+    return <span className="chip closed"><Icon name="clock" size={16} />Cutoff {cutoff.slice(0, 5)}</span>;
+  }
+  const urgent = left < 30 * 60;
+  return (
+    <span className={`chip ${urgent ? "urgent" : "open"}`}>
+      <span className={urgent ? "pulse" : ""}>●</span> Ordering open · {formatLeft(left)} left
+    </span>
   );
 }

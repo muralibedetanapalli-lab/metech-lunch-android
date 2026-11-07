@@ -28,6 +28,7 @@ data class BatchesState(
     val loading: Boolean = false,
     val batches: List<DeliveryBatch> = emptyList(),
     val error: String? = null,
+    val partnerName: String = "",
 ) {
     val open: List<DeliveryBatch> get() = batches.filter { it.isOpen }
     val done: List<DeliveryBatch> get() = batches.filterNot { it.isOpen }
@@ -40,6 +41,9 @@ class BatchesViewModel(private val api: LunchApi) : ViewModel() {
     fun load() {
         viewModelScope.launch {
             _state.update { it.copy(loading = true, error = null) }
+            if (_state.value.partnerName.isEmpty()) {
+                (apiCall { api.me() } as? ApiResult.Success)?.let { me -> _state.update { it.copy(partnerName = me.value.name) } }
+            }
             when (val r = apiCall { api.assignedBatches() }) {
                 is ApiResult.Success -> _state.update { it.copy(loading = false, batches = r.value) }
                 is ApiResult.Failure -> _state.update { it.copy(loading = false, error = r.message) }

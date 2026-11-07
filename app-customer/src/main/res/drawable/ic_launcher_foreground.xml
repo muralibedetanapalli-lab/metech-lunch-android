@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
+    <!-- Bowl -->
+    <path android:fillColor="#F2994A" android:pathData="M34,56 A20,20 0 0,0 74,56 Z" />
+    <path android:fillColor="#F2994A" android:pathData="M32,53.5 H76 A2.5,2.5 0 0 1 76,58.5 H32 A2.5,2.5 0 0 1 32,53.5 Z" />
+    <path android:fillColor="#F2994A" android:pathData="M48,75 H60 A1.5,1.5 0 0 1 60,78 H48 A1.5,1.5 0 0 1 48,75 Z" />
+    <!-- Steam -->
+    <path android:strokeColor="#FFF8EE" android:strokeWidth="3.5" android:strokeLineCap="round"
+        android:pathData="M46,49 C42,44 50,41 46,35" />
+    <path android:strokeColor="#FFF8EE" android:strokeWidth="3.5" android:strokeLineCap="round"
+        android:pathData="M54,47 C50,41 58,38 54,31" />
+    <path android:strokeColor="#FFF8EE" android:strokeWidth="3.5" android:strokeLineCap="round"
+        android:pathData="M62,49 C58,44 66,41 62,35" />
+</vector>

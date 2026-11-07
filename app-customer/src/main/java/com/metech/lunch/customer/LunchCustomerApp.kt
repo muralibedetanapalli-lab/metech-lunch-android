@@ -34,6 +34,9 @@ class AppContainer(context: Context) {
     )
 
     val auth = AuthRepository(api, session, UserRole.CUSTOMER)
+
+    /** orderId -> checkout URL, so an unpaid order can reopen its payment page this session. */
+    val checkoutUrls = java.util.concurrent.ConcurrentHashMap<String, String>()
 }
 
 val Context.appContainer: AppContainer

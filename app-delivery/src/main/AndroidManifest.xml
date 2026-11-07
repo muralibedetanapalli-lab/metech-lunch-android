@@ -9,7 +9,9 @@
         android:allowBackup="false"
         android:label="Metech Lunch Partner"
         android:supportsRtl="true"
-        android:theme="@android:style/Theme.Material.Light.NoActionBar">
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:theme="@style/Theme.Lunch">
 
         <activity
             android:name=".MainActivity"
