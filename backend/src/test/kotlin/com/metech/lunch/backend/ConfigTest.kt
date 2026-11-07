@@ -43,4 +43,11 @@ class ConfigTest {
         assertFalse("secret" in db.toString())
         assertEquals("h", db.host)
     }
+
+    @Test
+    fun `code request limit defaults to 10 and can be changed`() {
+        assertEquals(10, AppConfig.fromEnv(emptyMap()).otpMaxPerHour)
+        assertEquals(25, AppConfig.fromEnv(mapOf("OTP_MAX_PER_HOUR" to "25")).otpMaxPerHour)
+        assertEquals(10, AppConfig.fromEnv(mapOf("OTP_MAX_PER_HOUR" to "lots")).otpMaxPerHour)
+    }
 }

@@ -36,7 +36,8 @@ data class AppConfig(
     val refreshTokenTtl: Duration = Duration.ofDays(30),
     val otpTtl: Duration = Duration.ofMinutes(5),
     val otpMaxAttempts: Int = 5,
-    val otpMaxPerHour: Int = 5,
+    /** Code requests allowed per phone number and role in any rolling hour. */
+    val otpMaxPerHour: Int = 10,
     /** Dev/test only: every OTP is this value, and nothing is sent. */
     val devFixedOtp: String? = null,
     /** How long an unpaid order holds its meals before the capacity is released. */
@@ -66,6 +67,7 @@ data class AppConfig(
                 ),
                 jwtSecret = required("JWT_SECRET", "dev-only-jwt-secret-change-me"),
                 devFixedOtp = if (production) null else env["DEV_FIXED_OTP"] ?: "123456",
+                otpMaxPerHour = env["OTP_MAX_PER_HOUR"]?.toIntOrNull()?.coerceIn(1, 100) ?: 10,
                 mockPaymentsEnabled = !production && env["MOCK_PAYMENTS"] != "false",
                 mockWebhookSecret = env["MOCK_WEBHOOK_SECRET"] ?: "dev-mock-webhook-secret",
                 // Opt-in only: never put demo accounts into a real database by accident.

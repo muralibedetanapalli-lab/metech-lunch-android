@@ -102,6 +102,7 @@ az containerapp logs show -g rg-metech-lunch -n metech-lunch --type console --ta
 | `CORS_ORIGINS` | Dashboard origins, comma-separated | `http://localhost:5173` |
 | `DASHBOARD_DIR` | Built dashboard to serve at `/` (set in the container image) | (not served) |
 | `DEV_FIXED_OTP` | Sign-in code for every account, dev and pilot only | `123456` |
+| `OTP_MAX_PER_HOUR` | Sign-in code requests allowed per phone number and role per hour | `10` |
 | `SEED_DEMO_DATA` | `true` adds the demo kitchen, offices, menu and accounts | `false` |
 
 ### Tests
