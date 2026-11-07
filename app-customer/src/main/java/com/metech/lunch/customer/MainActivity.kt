@@ -139,6 +139,7 @@ private fun CustomerApp(container: AppContainer) {
                     tagline = "Fresh lunch, delivered to your desk",
                     heroEmoji = listOf("🍛", "🥗", "🍚", "🍗"),
                     codeSent = state.codeSent,
+                    shownCode = state.shownCode,
                     busy = state.busy,
                     errorMessage = state.error,
                     onRequestOtp = vm::requestOtp,

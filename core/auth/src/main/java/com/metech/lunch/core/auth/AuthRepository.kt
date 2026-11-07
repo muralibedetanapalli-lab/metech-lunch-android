@@ -15,8 +15,9 @@ class AuthRepository(
 ) {
     suspend fun isLoggedIn(): Boolean = session.hasSession()
 
-    suspend fun requestOtp(phone: String): ApiResult<Unit> =
-        apiCall { api.requestOtp(OtpRequest(phone = phone, role = role)) }
+    /** Success value is the code to show on screen, when the server shows codes (pilot without SMS). */
+    suspend fun requestOtp(phone: String): ApiResult<String?> =
+        apiCall { api.requestOtp(OtpRequest(phone = phone, role = role)).displayCode }
 
     suspend fun verifyOtp(phone: String, otp: String): ApiResult<Unit> =
         apiCall {

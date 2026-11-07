@@ -96,6 +96,7 @@ private fun DeliveryApp(container: AppContainer) {
                     tagline = "Pick up, deliver, done.",
                     heroEmoji = listOf("🛵", "🍱", "📦", "✅"),
                     codeSent = state.codeSent,
+                    shownCode = state.shownCode,
                     busy = state.busy,
                     errorMessage = state.error,
                     onRequestOtp = vm::requestOtp,

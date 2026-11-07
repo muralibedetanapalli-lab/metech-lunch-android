@@ -10,7 +10,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-data class LoginState(val codeSent: Boolean = false, val busy: Boolean = false, val error: String? = null)
+data class LoginState(
+    val codeSent: Boolean = false,
+    val busy: Boolean = false,
+    val error: String? = null,
+    /** Shown on the sign-in screen when the server has no SMS and returns the code instead. */
+    val shownCode: String? = null,
+)
 
 class LoginViewModel(private val auth: AuthRepository) : ViewModel() {
 
@@ -22,7 +28,7 @@ class LoginViewModel(private val auth: AuthRepository) : ViewModel() {
         viewModelScope.launch {
             _state.update { it.copy(busy = true, error = null) }
             when (val r = auth.requestOtp(phone)) {
-                is ApiResult.Success -> _state.update { it.copy(busy = false, codeSent = true) }
+                is ApiResult.Success -> _state.update { it.copy(busy = false, codeSent = true, shownCode = r.value) }
                 is ApiResult.Failure -> _state.update { it.copy(busy = false, error = r.message) }
             }
         }

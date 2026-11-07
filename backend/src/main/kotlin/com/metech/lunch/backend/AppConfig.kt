@@ -40,6 +40,11 @@ data class AppConfig(
     val otpMaxPerHour: Int = 10,
     /** Dev/test only: every OTP is this value, and nothing is sent. */
     val devFixedOtp: String? = null,
+    /**
+     * Pilot only (no SMS provider yet): every request gets a fresh random code, returned to the
+     * caller so the sign-in screen can show it. Anyone who knows a number can then sign in as it.
+     */
+    val showOtpOnScreen: Boolean = false,
     /** How long an unpaid order holds its meals before the capacity is released. */
     val paymentHold: Duration = Duration.ofMinutes(15),
     val mockPaymentsEnabled: Boolean = true,
@@ -66,7 +71,8 @@ data class AppConfig(
                     password = required("DATABASE_PASSWORD", "metech"),
                 ),
                 jwtSecret = required("JWT_SECRET", "dev-only-jwt-secret-change-me"),
-                devFixedOtp = if (production) null else env["DEV_FIXED_OTP"] ?: "123456",
+                devFixedOtp = if (production || env["SHOW_OTP_ON_SCREEN"] == "true") null else env["DEV_FIXED_OTP"] ?: "123456",
+                showOtpOnScreen = !production && env["SHOW_OTP_ON_SCREEN"] == "true",
                 otpMaxPerHour = env["OTP_MAX_PER_HOUR"]?.toIntOrNull()?.coerceIn(1, 100) ?: 10,
                 mockPaymentsEnabled = !production && env["MOCK_PAYMENTS"] != "false",
                 mockWebhookSecret = env["MOCK_WEBHOOK_SECRET"] ?: "dev-mock-webhook-secret",

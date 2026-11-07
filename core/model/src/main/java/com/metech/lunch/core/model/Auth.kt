@@ -9,6 +9,10 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class OtpRequest(val phone: String, val role: UserRole)
 
+/** Reply to a code request. [displayCode] is set only when the server shows codes on screen (pilot, no SMS). */
+@Serializable
+data class OtpRequestResponse(val displayCode: String? = null)
+
 @Serializable
 data class OtpVerifyRequest(val phone: String, val otp: String, val role: UserRole)
 

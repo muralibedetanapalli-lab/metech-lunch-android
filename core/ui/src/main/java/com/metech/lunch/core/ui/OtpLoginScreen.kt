@@ -82,6 +82,7 @@ fun OtpLoginScreen(
     tagline: String,
     heroEmoji: List<String>,
     codeSent: Boolean,
+    shownCode: String? = null,
     busy: Boolean,
     errorMessage: String?,
     onRequestOtp: (phone: String) -> Unit,
@@ -139,6 +140,7 @@ fun OtpLoginScreen(
                 } else {
                     CodeStep(
                         phoneLabel = "+91 ${digits.take(5)} ${digits.drop(5)}",
+                        shownCode = shownCode,
                         code = code,
                         onCode = { new ->
                             code = new
@@ -215,6 +217,7 @@ private fun PhoneStep(digits: String, onDigits: (String) -> Unit, busy: Boolean,
 @Composable
 private fun CodeStep(
     phoneLabel: String,
+    shownCode: String?,
     code: String,
     onCode: (String) -> Unit,
     busy: Boolean,
@@ -230,13 +233,14 @@ private fun CodeStep(
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Text("Enter the code", style = MaterialTheme.typography.headlineSmall)
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Sent to $phoneLabel", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(if (shownCode != null) "For $phoneLabel" else "Sent to $phoneLabel", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             TextButton(onClick = onEdit) {
                 Icon(Icons.Default.Edit, null, Modifier.size(16.dp))
                 Spacer(Modifier.width(4.dp))
                 Text("Change")
             }
         }
+        if (shownCode != null) ShownCode(shownCode) { onCode(shownCode) }
         CodeInput(value = code, onValueChange = onCode, length = OTP_DIGITS, isError = error != null)
         ErrorLine(error)
         PrimaryButton(
@@ -299,5 +303,26 @@ private fun FloatingFood(emoji: List<String>, modifier: Modifier) {
                 contentAlignment = Alignment.Center,
             ) { Text(e, style = MaterialTheme.typography.titleLarge) }
         }
+    }
+}
+
+/** The code itself, for the pilot without SMS: big digits plus a one-tap "use it". */
+@Composable
+private fun ShownCode(code: String, onUse: () -> Unit) {
+    val x = LunchTheme.extras
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(x.saffronSoft).padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text("Your sign-in code", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSecondaryContainer)
+            Text(
+                code.chunked(3).joinToString(" "),
+                style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                letterSpacing = MaterialTheme.typography.headlineMedium.fontSize * 0.08f,
+            )
+        }
+        TextButton(onClick = onUse) { Text("Use this code", fontWeight = FontWeight.Bold) }
     }
 }

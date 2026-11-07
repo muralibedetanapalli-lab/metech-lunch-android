@@ -12,6 +12,8 @@ export default function LoginPage() {
   const [code, setCode] = useState<string[]>(Array(DIGITS).fill(""));
   const [otpSent, setOtpSent] = useState(false);
   const [shake, setShake] = useState(false);
+  /** Set when the server has no SMS yet and returns the code to show here. */
+  const [shownCode, setShownCode] = useState<string | null>(null);
   const { busy, error, run } = useAction();
   const boxes = useRef<(HTMLInputElement | null)[]>([]);
   const fullPhone = "+91" + phone;
@@ -28,12 +30,13 @@ export default function LoginPage() {
   }, [error]);
 
   async function requestCode() {
-    const ok = await run(async () => {
-      await api.post("/auth/otp/request", { phone: fullPhone, role });
-      return true;
+    const reply = await run(async () => {
+      const r = await api.post<{ displayCode?: string | null } | undefined>("/auth/otp/request", { phone: fullPhone, role });
+      return r ?? {};
     });
-    if (ok) {
+    if (reply) {
       setCode(Array(DIGITS).fill(""));
+      setShownCode(reply.displayCode ?? null);
       setOtpSent(true);
     }
   }
@@ -88,7 +91,11 @@ export default function LoginPage() {
           <div>
             <h2>{otpSent ? "Enter your code" : "Sign in"}</h2>
             <p className="muted" style={{ margin: "6px 0 0" }}>
-              {otpSent ? `We sent a 6-digit code to +91 ${phone.slice(0, 5)} ${phone.slice(5)}.` : "Use the phone number registered for your role."}
+              {!otpSent
+                ? "Use the phone number registered for your role."
+                : shownCode
+                  ? `Your code for +91 ${phone.slice(0, 5)} ${phone.slice(5)} is below.`
+                  : `We sent a 6-digit code to +91 ${phone.slice(0, 5)} ${phone.slice(5)}.`}
             </p>
           </div>
 
@@ -117,6 +124,18 @@ export default function LoginPage() {
                 </div>
               </label>
             </>
+          )}
+
+          {otpSent && shownCode && (
+            <div className="shown-code">
+              <div>
+                <div className="small">Your sign-in code</div>
+                <div className="digits">{shownCode.slice(0, 3)} {shownCode.slice(3)}</div>
+              </div>
+              <button type="button" className="accent" onClick={() => setDigit(0, shownCode)}>
+                Use this code
+              </button>
+            </div>
           )}
 
           {otpSent && (

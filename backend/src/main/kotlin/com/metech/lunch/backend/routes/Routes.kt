@@ -20,6 +20,7 @@ import com.metech.lunch.core.model.DeliveryIssueReport
 import com.metech.lunch.core.model.ErrorCodes
 import com.metech.lunch.core.model.HandoverConfirmation
 import com.metech.lunch.core.model.OtpRequest
+import com.metech.lunch.core.model.OtpRequestResponse
 import com.metech.lunch.core.model.OtpVerifyRequest
 import com.metech.lunch.core.model.PickupConfirmation
 import com.metech.lunch.core.model.PlaceOrderRequest
@@ -55,8 +56,8 @@ fun Route.authRoutes(s: Services) {
     route("/auth") {
         post("/otp/request") {
             val body = call.receive<OtpRequest>()
-            s.auth.requestOtp(body.phone, body.role)
-            call.respond(HttpStatusCode.NoContent)
+            // Always 200 + JSON; older app builds ignore the body.
+            call.respond(OtpRequestResponse(displayCode = s.auth.requestOtp(body.phone, body.role)))
         }
         post("/otp/verify") {
             val body = call.receive<OtpVerifyRequest>()

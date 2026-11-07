@@ -112,7 +112,7 @@ class AuthAndDeliveryTest {
         val picked = client.postJson<Unit>("/api/partner/batches/$batchId/pickup", partner, PickupConfirmation(3)).body<DeliveryBatch>()
         assertEquals(BatchStatus.PICKED_UP, picked.status)
 
-        val badOtp = client.postJson<Unit>("/api/partner/batches/$batchId/handover", partner, HandoverConfirmation(listOf(a.id), "0000"))
+        val badOtp = client.postJson<Unit>("/api/partner/batches/$batchId/handover", partner, HandoverConfirmation(listOf(a.id), if (a.deliveryOtp == "0000") "1111" else "0000"))
         assertEquals(ErrorCodes.INVALID_HANDOVER_OTP, badOtp.body<ApiError>().code)
 
         val afterA = client.postJson<Unit>("/api/partner/batches/$batchId/handover", partner, HandoverConfirmation(listOf(a.id), a.deliveryOtp))

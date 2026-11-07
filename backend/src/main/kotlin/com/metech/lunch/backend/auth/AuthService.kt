@@ -54,7 +54,8 @@ class AuthService(
     val jwtAlgorithm: Algorithm = Algorithm.HMAC256(config.jwtSecret)
     val jwtAudience = "metech-lunch-api"
 
-    suspend fun requestOtp(rawPhone: String, role: UserRole) {
+    /** Creates a code for [rawPhone]. Returns it only when the server shows codes on screen. */
+    suspend fun requestOtp(rawPhone: String, role: UserRole): String? {
         val phone = normalizePhone(rawPhone)
         val now = clock.nowUtc()
         val code = db.tx {
@@ -66,7 +67,13 @@ class AuthService(
             }
             // Staff and partner accounts are created by the owner. For unknown numbers we
             // answer the same way but send nothing, so the endpoint does not reveal accounts.
-            if (role != UserRole.CUSTOMER && findActiveUser(phone, role) == null) return@tx null
+            if (role != UserRole.CUSTOMER && findActiveUser(phone, role) == null) {
+                // With codes shown on screen, hiding which numbers exist protects nothing; say so plainly.
+                if (config.showOtpOnScreen) {
+                    throw ApiException(HttpStatusCode.NotFound, ErrorCodes.NOT_FOUND, "This number isn't registered as ${roleName(role)}.")
+                }
+                return@tx null
+            }
 
             val code = config.devFixedOtp ?: randomDigits(6)
             OtpCodes.insert {
@@ -80,7 +87,17 @@ class AuthService(
             }
             code
         }
-        if (code != null && config.devFixedOtp == null) otpSender.send(phone, code)
+        if (code == null) return null
+        if (config.showOtpOnScreen) return code
+        if (config.devFixedOtp == null) otpSender.send(phone, code)
+        return null
+    }
+
+    private fun roleName(role: UserRole) = when (role) {
+        UserRole.OWNER -> "an owner"
+        UserRole.KITCHEN_STAFF -> "kitchen staff"
+        UserRole.DELIVERY_PARTNER -> "a delivery partner"
+        UserRole.CUSTOMER -> "a customer"
     }
 
     suspend fun verifyOtp(rawPhone: String, otp: String, role: UserRole): AuthTokens {

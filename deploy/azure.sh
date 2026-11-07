@@ -38,13 +38,17 @@ DB_USER=$(env_value DATABASE_USER)
 DB_PASSWORD=$(env_value DATABASE_PASSWORD)
 JWT_SECRET=$(env_value JWT_SECRET)
 LOGIN_CODE=$(env_value DEV_FIXED_OTP)
-for pair in "DATABASE_USER:$DB_USER" "DATABASE_PASSWORD:$DB_PASSWORD" "JWT_SECRET:$JWT_SECRET" "DEV_FIXED_OTP:$LOGIN_CODE"; do
+SHOW_CODES=$(env_value SHOW_OTP_ON_SCREEN)
+REQUIRED=("DATABASE_USER:$DB_USER" "DATABASE_PASSWORD:$DB_PASSWORD" "JWT_SECRET:$JWT_SECRET")
+# With codes shown on screen the server makes a random code per request, so no fixed code is needed.
+[ "$SHOW_CODES" = "true" ] || REQUIRED+=("DEV_FIXED_OTP:$LOGIN_CODE")
+for pair in "${REQUIRED[@]}"; do
   name=${pair%%:*}; value=${pair#*:}
   if [ -z "$value" ] || [[ "$value" == YOUR-* ]]; then
     echo "Set $name in backend/.env first." >&2; exit 1
   fi
 done
-if [ "$LOGIN_CODE" = "123456" ]; then
+if [ "$SHOW_CODES" != "true" ] && [ "$LOGIN_CODE" = "123456" ]; then
   echo "DEV_FIXED_OTP must not be 123456 on a public address; pick a private 6-digit code." >&2; exit 1
 fi
 
@@ -81,7 +85,7 @@ if [ -z "${DB_HOST:-}" ]; then
 fi
 echo "Using $DB_HOST / database $DB_NAME as $DB_USER"
 
-SECRETS=(db-password="$DB_PASSWORD" jwt-secret="$JWT_SECRET" login-code="$LOGIN_CODE")
+SECRETS=(db-password="$DB_PASSWORD" jwt-secret="$JWT_SECRET" login-code="${LOGIN_CODE:-unused}")
 ENV_VARS=(
   DATABASE_URL="jdbc:postgresql://$DB_HOST:5432/$DB_NAME"
   DATABASE_USER="$DB_USER"
@@ -89,6 +93,7 @@ ENV_VARS=(
   JWT_SECRET=secretref:jwt-secret
   DEV_FIXED_OTP=secretref:login-code
   SEED_DEMO_DATA=true
+  SHOW_OTP_ON_SCREEN="${SHOW_CODES:-false}"
 )
 
 step "Container app $APP_NAME ($IMAGE)"

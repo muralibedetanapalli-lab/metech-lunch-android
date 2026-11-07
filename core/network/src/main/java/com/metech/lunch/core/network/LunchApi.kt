@@ -8,6 +8,7 @@ import com.metech.lunch.core.model.HandoverConfirmation
 import com.metech.lunch.core.model.Office
 import com.metech.lunch.core.model.Order
 import com.metech.lunch.core.model.OtpRequest
+import com.metech.lunch.core.model.OtpRequestResponse
 import com.metech.lunch.core.model.OtpVerifyRequest
 import com.metech.lunch.core.model.PickupConfirmation
 import com.metech.lunch.core.model.PlaceOrderRequest
@@ -29,7 +30,7 @@ interface LunchApi {
 
     // --- Auth ---
     @POST("auth/otp/request")
-    suspend fun requestOtp(@Body body: OtpRequest)
+    suspend fun requestOtp(@Body body: OtpRequest): OtpRequestResponse
 
     @POST("auth/otp/verify")
     suspend fun verifyOtp(@Body body: OtpVerifyRequest): AuthTokens

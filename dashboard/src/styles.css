@@ -375,6 +375,12 @@ ol.steps li::before {
 .otp-boxes input.filled { border-color: var(--primary); }
 .otp-boxes.shake { animation: shake 0.35s ease; }
 .login-form button[type="submit"] { padding: 14px; font-size: 1rem; }
+.shown-code {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 14px 16px; border-radius: 18px; background: var(--saffron-soft); color: var(--saffron-deep);
+  animation: rise 0.3s ease both;
+}
+.shown-code .digits { font-family: var(--font-display); font-size: 1.9rem; font-weight: 700; letter-spacing: 0.12em; color: var(--text); }
 
 /* ---------- Motion ---------- */
 @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }

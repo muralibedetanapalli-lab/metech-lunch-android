@@ -84,7 +84,7 @@ The pilot runs on **Azure Container Apps** as one app that serves both the API (
    ```
    The first run creates the `rg-metech-lunch` resource group, a `snet-metech-lunch` subnet in `synchealth-vnet`, the Container Apps environment and the app, then prints the app's address. Later runs update the app. Pass a commit SHA to deploy a specific build: `bash deploy/azure.sh <sha>`.
 
-Until an SMS provider and a payment gateway are connected, the pilot runs in dev mode. Everyone signs in with `DEV_FIXED_OTP`, payments use the mock checkout page, and the demo kitchen, offices and accounts are added (`SEED_DEMO_DATA=true`). Don't put real orders or payments through it.
+Until an SMS provider and a payment gateway are connected, the pilot runs in dev mode. Sign-in uses either a private fixed code (`DEV_FIXED_OTP`) or, with `SHOW_OTP_ON_SCREEN=true`, a random code shown on the sign-in screen; payments use the mock checkout page, and the demo kitchen, offices and accounts are added (`SEED_DEMO_DATA=true`). Don't put real orders or payments through it.
 
 Logs:
 ```bash
@@ -102,6 +102,7 @@ az containerapp logs show -g rg-metech-lunch -n metech-lunch --type console --ta
 | `CORS_ORIGINS` | Dashboard origins, comma-separated | `http://localhost:5173` |
 | `DASHBOARD_DIR` | Built dashboard to serve at `/` (set in the container image) | (not served) |
 | `DEV_FIXED_OTP` | Sign-in code for every account, dev and pilot only | `123456` |
+| `SHOW_OTP_ON_SCREEN` | `true` gives each sign-in a random code and shows it on the sign-in screen (pilot without SMS; never in production). Anyone who knows a phone number can then sign in as it | `false` |
 | `OTP_MAX_PER_HOUR` | Sign-in code requests allowed per phone number and role per hour | `10` |
 | `SEED_DEMO_DATA` | `true` adds the demo kitchen, offices, menu and accounts | `false` |
 
