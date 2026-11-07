@@ -9,6 +9,7 @@ import { Icon, Logo, type IconName } from "./components/icons";
 import LoginPage from "./pages/LoginPage";
 import OverviewPage from "./pages/OverviewPage";
 import OrdersPage from "./pages/OrdersPage";
+import ActiveOrdersPage from "./pages/ActiveOrdersPage";
 import KitchenPage from "./pages/KitchenPage";
 import DispatchPage from "./pages/DispatchPage";
 import MenuPage from "./pages/MenuPage";
@@ -59,6 +60,7 @@ function SignedIn() {
       <Layout>
         <Routes>
           <Route path="/" element={<OverviewPage />} />
+          <Route path="/active" element={<ActiveOrdersPage />} />
           <Route path="/kitchen" element={<KitchenPage />} />
           <Route path="/dispatch" element={<DispatchPage />} />
           <Route path="/menu" element={<MenuPage />} />
@@ -83,6 +85,7 @@ function Layout({ children }: { children: React.ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const daily: [string, string, IconName][] = [
     ["/", "Overview", "home"],
+    ["/active", "Active orders", "pin"],
     ["/kitchen", "Kitchen prep", "chef"],
     ["/dispatch", "Dispatch", "truck"],
     ["/menu", "Menu", "book"],

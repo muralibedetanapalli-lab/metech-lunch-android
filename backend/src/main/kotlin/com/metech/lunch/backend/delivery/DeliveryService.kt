@@ -18,6 +18,7 @@ import com.metech.lunch.backend.db.Kitchens
 import com.metech.lunch.backend.db.OrderLines
 import com.metech.lunch.backend.db.Offices
 import com.metech.lunch.backend.db.Orders
+import com.metech.lunch.backend.db.PartnerLocations
 import com.metech.lunch.backend.db.Users
 import com.metech.lunch.core.model.BatchOrder
 import com.metech.lunch.core.model.BatchStatus
@@ -26,6 +27,8 @@ import com.metech.lunch.core.model.DeliveryIssueReport
 import com.metech.lunch.core.model.DropPoint
 import com.metech.lunch.core.model.ErrorCodes
 import com.metech.lunch.core.model.HandoverConfirmation
+import com.metech.lunch.core.model.LocationAck
+import com.metech.lunch.core.model.LocationUpdate
 import com.metech.lunch.core.model.Office
 import com.metech.lunch.core.model.OrderStatus
 import com.metech.lunch.core.model.RecipientContact
@@ -37,11 +40,15 @@ import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.update
 import java.time.Clock
+import java.time.OffsetDateTime
 
 /**
  * Delivery partner operations. A partner only ever sees batches assigned to them, and
  * only the customer details needed to hand meals over.
  */
+/** Batch statuses where the partner is carrying meals. */
+val ON_THE_ROAD = listOf(BatchStatus.PICKED_UP.wire(), BatchStatus.IN_TRANSIT.wire())
+
 class DeliveryService(private val db: Db, private val clock: Clock) {
 
     suspend fun assignedBatches(partnerId: String, status: BatchStatus?): List<DeliveryBatch> = db.tx {
@@ -74,11 +81,45 @@ class DeliveryService(private val db: Db, private val clock: Clock) {
         DeliveryBatches.update({ DeliveryBatches.id eq batchId }) {
             it[status] = BatchStatus.PICKED_UP.wire()
             it[pickupCount] = confirmedMealCount
+            it[pickedUpAt] = now
             it[updatedAt] = now
         }
         for (orderId in activeOrderIds(batchId)) setOrderStatus(orderId, OrderStatus.OUT_FOR_DELIVERY)
         audit(clock, partnerId, "batch_picked_up", "batch", batchId, "meals=$confirmedMealCount")
         toBatch(DeliveryBatches.selectAll().where { DeliveryBatches.id eq batchId }.single())
+    }
+
+    /**
+     * Stores a GPS fix, but only while the partner has a batch on the road (picked up and not
+     * yet finished). Otherwise nothing is kept and the app is told to stop sharing.
+     */
+    suspend fun recordLocation(partnerId: String, update: LocationUpdate): LocationAck = db.tx {
+        if (update.latitude !in -90.0..90.0 || update.longitude !in -180.0..180.0 ||
+            update.latitude.isNaN() || update.longitude.isNaN()
+        ) badRequest("Invalid coordinates")
+        val onTheRoad = DeliveryBatches.selectAll()
+            .where { (DeliveryBatches.partnerId eq partnerId) and (DeliveryBatches.status inList ON_THE_ROAD) }
+            .limit(1)
+            .any()
+        if (!onTheRoad) return@tx LocationAck(tracking = false)
+
+        val now = clock.nowUtc()
+        // Trust the phone's timestamp only if it is recent and not in the future.
+        val recorded = update.recordedAt
+            ?.let { runCatching { OffsetDateTime.parse(it) }.getOrNull() }
+            ?.takeIf { !it.isAfter(now.plusMinutes(1)) && it.isAfter(now.minusMinutes(15)) }
+            ?: now
+        PartnerLocations.insert {
+            it[PartnerLocations.partnerId] = partnerId
+            it[latitude] = update.latitude
+            it[longitude] = update.longitude
+            it[accuracyM] = update.accuracyMeters?.takeIf { a -> a.isFinite() && a >= 0 }
+            it[speedMps] = update.speedMps?.takeIf { v -> v.isFinite() && v >= 0 }
+            it[headingDeg] = update.headingDegrees?.takeIf { h -> h.isFinite() }
+            it[recordedAt] = recorded
+            it[receivedAt] = now
+        }
+        LocationAck(tracking = true)
     }
 
     /**

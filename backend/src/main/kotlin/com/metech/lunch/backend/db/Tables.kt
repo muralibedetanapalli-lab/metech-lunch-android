@@ -161,8 +161,23 @@ object DeliveryBatches : Table("delivery_batches") {
     val coordinatorPhone = text("coordinator_phone").nullable()
     val coordinatorOtp = text("coordinator_otp").nullable()
     val pickupCount = integer("pickup_count").nullable()
+    val pickedUpAt = timestampWithTimeZone("picked_up_at").nullable()
     val createdAt = timestampWithTimeZone("created_at")
     val updatedAt = timestampWithTimeZone("updated_at")
+    override val primaryKey = PrimaryKey(id)
+}
+
+/** GPS fixes from a delivery partner's phone, recorded only while they have a batch on the road. */
+object PartnerLocations : Table("partner_locations") {
+    val id = long("id").autoIncrement()
+    val partnerId = varchar("partner_id", 36)
+    val latitude = double("latitude")
+    val longitude = double("longitude")
+    val accuracyM = float("accuracy_m").nullable()
+    val speedMps = float("speed_mps").nullable()
+    val headingDeg = float("heading_deg").nullable()
+    val recordedAt = timestampWithTimeZone("recorded_at")
+    val receivedAt = timestampWithTimeZone("received_at")
     override val primaryKey = PrimaryKey(id)
 }
 

@@ -382,6 +382,61 @@ ol.steps li::before {
 }
 .shown-code .digits { font-family: var(--font-display); font-size: 1.9rem; font-weight: 700; letter-spacing: 0.12em; color: var(--text); }
 
+/* ---------- Active orders & live map ---------- */
+.tracking-layout { display: grid; grid-template-columns: minmax(300px, 380px) minmax(0, 1fr); gap: 18px; align-items: start; }
+.tracking-layout > section { min-width: 0; }
+.tracking-list { display: flex; flex-direction: column; gap: 12px; position: sticky; top: 76px; max-height: calc(100vh - 100px); }
+.tracking-filters { display: flex; gap: 6px; flex-wrap: wrap; }
+button.pill { background: var(--surface); color: var(--text); border: 1px solid var(--border); box-shadow: none; padding: 6px 12px; font-size: 0.85rem; }
+button.pill:hover:not(:disabled) { filter: none; box-shadow: none; border-color: var(--saffron); }
+button.pill.active { background: var(--primary); color: var(--primary-ink); border-color: transparent; }
+.pill-count { background: rgba(0, 0, 0, 0.08); border-radius: 999px; padding: 0 7px; font-size: 0.75rem; }
+button.pill.active .pill-count { background: rgba(255, 255, 255, 0.2); }
+.search { flex-direction: row; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--border-strong); border-radius: 999px; padding: 0 14px; color: var(--muted); }
+.search:focus-within { border-color: var(--saffron); box-shadow: var(--ring); }
+.search input { border: 0; box-shadow: none; flex: 1; padding: 10px 0; background: transparent; }
+.order-cards { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; padding: 2px 4px 8px 2px; }
+button.order-card {
+  display: flex; align-items: center; gap: 12px; text-align: left; width: 100%;
+  background: var(--surface); color: var(--text); border: 1.5px solid var(--border); border-radius: 18px;
+  padding: 12px 14px; box-shadow: var(--shadow-sm); font-weight: 400;
+  transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+button.order-card:hover:not(:disabled) { filter: none; transform: translateX(3px); border-color: var(--saffron); box-shadow: var(--shadow); }
+button.order-card.selected { border-color: var(--primary); background: var(--primary-soft); }
+.order-emoji { width: 42px; height: 42px; flex-shrink: 0; display: grid; place-items: center; border-radius: 14px; background: var(--saffron-soft); font-size: 1.3rem; }
+.order-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.order-main strong, .order-main span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.order-side { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.live-tag { font-size: 0.72rem; font-weight: 700; color: var(--saffron-deep); text-transform: uppercase; letter-spacing: 0.06em; }
+.tracking-empty { text-align: center; padding: 56px 24px; }
+.tracking-card { display: flex; flex-direction: column; gap: 16px; }
+.order-steps { list-style: none; display: flex; margin: 0; padding: 0; gap: 4px; }
+.order-steps li { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 0.8rem; color: var(--muted); position: relative; }
+.order-steps li::after { content: ""; position: absolute; top: 14px; left: calc(50% + 18px); right: calc(-50% + 18px); height: 3px; border-radius: 3px; background: var(--border); }
+.order-steps li:last-child::after { display: none; }
+.order-steps li.done::after { background: var(--primary); }
+.step-dot { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--bg-deep); font-weight: 700; font-size: 0.8rem; }
+.order-steps li.done .step-dot { background: var(--primary); color: var(--primary-ink); }
+.order-steps li.current { color: var(--text); font-weight: 700; }
+.order-steps li.current .step-dot { background: var(--saffron); color: #fff; box-shadow: 0 0 0 5px var(--saffron-soft); }
+.live-map { position: relative; border-radius: 20px; overflow: hidden; border: 1px solid var(--border); }
+.live-map-canvas { height: 420px; width: 100%; background: var(--bg-deep); }
+.live-map-tools { position: absolute; top: 12px; right: 12px; z-index: 500; }
+.live-map-tools button { box-shadow: var(--shadow); }
+.rider-marker { position: relative; }
+.rider-dot { position: absolute; inset: 4px; display: grid; place-items: center; border-radius: 50%; background: #fff; border: 3px solid #f2994a; font-size: 18px; box-shadow: 0 6px 14px rgba(0,0,0,0.25); }
+.rider-pulse { position: absolute; inset: 0; border-radius: 50%; background: rgba(242, 153, 74, 0.45); animation: ping 1.6s ease-out infinite; }
+@keyframes ping { from { transform: scale(0.6); opacity: 0.9; } to { transform: scale(1.8); opacity: 0; } }
+.map-facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.fact { display: flex; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 14px; background: var(--surface-2); border: 1px solid var(--border); color: var(--muted); }
+.fact strong { color: var(--text); }
+.map-waiting { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; padding: 40px 16px; border-radius: 20px; background: var(--surface-2); border: 1px dashed var(--border-strong); }
+.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.partner { display: flex; align-items: center; gap: 10px; }
+a.call { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; background: var(--primary); color: var(--primary-ink); }
+.leaflet-container { font-family: var(--font-body); }
+
 /* ---------- Motion ---------- */
 @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
@@ -402,7 +457,14 @@ ol.steps li::before {
   .login-hero h1 { font-size: 2.2rem; }
   .login-hero .features { display: none; }
 }
+@media (max-width: 1000px) {
+  .tracking-layout { grid-template-columns: minmax(0, 1fr); }
+  .tracking-list { position: static; max-height: none; }
+  .order-cards { max-height: 340px; }
+}
 @media (max-width: 800px) {
+  .live-map-canvas { height: 320px; }
+  .map-facts, .detail-grid { grid-template-columns: 1fr; }
   .sidebar { position: fixed; left: 0; top: 0; z-index: 20; transform: translateX(-100%); transition: transform 0.25s ease; box-shadow: 0 0 40px rgba(0, 0, 0, 0.3); }
   .sidebar.open { transform: none; }
   .scrim { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.35); z-index: 15; animation: fade 0.2s; }

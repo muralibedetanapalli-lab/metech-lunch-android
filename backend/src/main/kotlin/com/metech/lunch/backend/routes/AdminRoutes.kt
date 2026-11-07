@@ -84,6 +84,8 @@ fun Route.adminRoutes(s: Services) {
                 call.respond(s.ops.assignBatch(call.staff(s), call.id(), call.receive<AssignBatchRequest>()))
             }
             get("/issues") { call.respond(s.ops.issues(call.staff(s), call.date())) }
+            // Live delivery state of one order: partner, latest GPS fix and trail since pickup.
+            get("/orders/{id}/tracking") { call.respond(s.tracking.orderTracking(call.staff(s), call.id())) }
             get("/partners") { call.respond(s.owner.users(call.staff(s), UserRole.DELIVERY_PARTNER).filter { it.active }) }
         }
 

@@ -7,6 +7,8 @@ import com.metech.lunch.core.model.DeliveryIssueReport
 import com.metech.lunch.core.model.HandoverConfirmation
 import com.metech.lunch.core.model.Office
 import com.metech.lunch.core.model.Order
+import com.metech.lunch.core.model.LocationAck
+import com.metech.lunch.core.model.LocationUpdate
 import com.metech.lunch.core.model.OtpRequest
 import com.metech.lunch.core.model.OtpRequestResponse
 import com.metech.lunch.core.model.OtpVerifyRequest
@@ -61,6 +63,10 @@ interface LunchApi {
     suspend fun requestCancellation(@Path("id") id: String): Order
 
     // --- Delivery partner ---
+    /** GPS fix while on a delivery; [LocationAck.tracking] false means stop sharing. */
+    @POST("partner/location")
+    suspend fun sendLocation(@Body body: LocationUpdate): LocationAck
+
     @GET("partner/batches")
     suspend fun assignedBatches(@Query("status") status: String? = null): List<DeliveryBatch>
 

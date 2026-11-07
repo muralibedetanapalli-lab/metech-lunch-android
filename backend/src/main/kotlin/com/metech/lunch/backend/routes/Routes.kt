@@ -19,6 +19,7 @@ import com.metech.lunch.core.model.BatchStatus
 import com.metech.lunch.core.model.DeliveryIssueReport
 import com.metech.lunch.core.model.ErrorCodes
 import com.metech.lunch.core.model.HandoverConfirmation
+import com.metech.lunch.core.model.LocationUpdate
 import com.metech.lunch.core.model.OtpRequest
 import com.metech.lunch.core.model.OtpRequestResponse
 import com.metech.lunch.core.model.OtpVerifyRequest
@@ -114,6 +115,8 @@ fun Route.customerRoutes(s: Services) {
 
 fun Route.partnerRoutes(s: Services) {
     authenticate(AuthProviders.PARTNER) {
+        // GPS fixes while on a delivery; the reply says whether to keep sharing.
+        post("/partner/location") { call.respond(s.delivery.recordLocation(call.userId, call.receive<LocationUpdate>())) }
         route("/partner/batches") {
             get {
                 val status = call.request.queryParameters["status"]?.let {

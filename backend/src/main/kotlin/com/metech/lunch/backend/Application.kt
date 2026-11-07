@@ -4,6 +4,7 @@ import com.auth0.jwt.JWT
 import com.metech.lunch.backend.admin.CatalogAdmin
 import com.metech.lunch.backend.admin.OperationsAdmin
 import com.metech.lunch.backend.admin.OwnerAdmin
+import com.metech.lunch.backend.admin.TrackingAdmin
 import com.metech.lunch.backend.auth.AuthService
 import com.metech.lunch.backend.routes.adminRoutes
 import com.metech.lunch.backend.auth.LoggingOtpSender
@@ -68,6 +69,7 @@ class Services(
     val catalog = CatalogAdmin(db, clock, menu)
     val ops = OperationsAdmin(db, clock, menu)
     val owner = OwnerAdmin(db, clock, menu, ops, payments.gateways)
+    val tracking = TrackingAdmin(db, ops)
 }
 
 /**

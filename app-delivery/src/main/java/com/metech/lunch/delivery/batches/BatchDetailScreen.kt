@@ -1,9 +1,13 @@
 package com.metech.lunch.delivery.batches
 
+import android.Manifest
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
@@ -100,6 +104,7 @@ import com.metech.lunch.core.ui.label
 import com.metech.lunch.core.ui.pressScale
 import com.metech.lunch.core.ui.shimmer
 import com.metech.lunch.core.ui.tone
+import com.metech.lunch.delivery.tracking.LocationSharingService
 
 private enum class Sheet { PICKUP, HANDOVER, ISSUE }
 
@@ -163,6 +168,21 @@ private fun androidx.compose.foundation.layout.ColumnScope.Content(
     LaunchedEffect(batch) { selected = selected.filter { id -> deliverable.any { it.orderId == id } }.toSet() }
     val pickupStage = batch.status == BatchStatus.ASSIGNED || batch.status == BatchStatus.UNASSIGNED
     val inTransit = !pickupStage && deliverable.isNotEmpty()
+    val onRoad = batch.status == BatchStatus.PICKED_UP || batch.status == BatchStatus.IN_TRANSIT
+
+    // Live tracking: ask for location at pickup; share while the meals are on the road.
+    var hasLocation by remember { mutableStateOf(LocationSharingService.hasLocationPermission(context)) }
+    var openPickupAfterPermission by remember { mutableStateOf(false) }
+    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+        hasLocation = LocationSharingService.hasLocationPermission(context)
+        if (openPickupAfterPermission) { openPickupAfterPermission = false; open(Sheet.PICKUP) }
+    }
+    val askForLocation = {
+        val perms = mutableListOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) perms += Manifest.permission.POST_NOTIFICATIONS
+        permissionLauncher.launch(perms.toTypedArray())
+    }
+    LaunchedEffect(onRoad, hasLocation) { if (onRoad && hasLocation) LocationSharingService.start(context) }
 
     // Celebrate the moment the last order is handed over.
     var lastStatus by remember { mutableStateOf<BatchStatus?>(null) }
@@ -177,7 +197,21 @@ private fun androidx.compose.foundation.layout.ColumnScope.Content(
             Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Hero(batch)
+            Hero(batch, sharing = onRoad && hasLocation)
+
+            AnimatedVisibility(onRoad && !hasLocation, enter = expandVertically() + fadeIn(), exit = shrinkVertically() + fadeOut()) {
+                Row(
+                    Modifier.fillMaxWidth().clip(MaterialTheme.shapes.medium).background(LunchTheme.extras.warningSoft).padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        "📍  Turn on location so the kitchen can follow this delivery on the map.",
+                        color = LunchTheme.extras.warning, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.weight(1f),
+                    )
+                    TextButton(onClick = askForLocation) { Text("Turn on", fontWeight = FontWeight.Bold) }
+                }
+            }
 
             AnimatedVisibility(state.message != null, enter = expandVertically() + fadeIn(), exit = shrinkVertically() + fadeOut()) {
                 Banner("🎉  ${state.message.orEmpty()}", LunchTheme.extras.successSoft, LunchTheme.extras.success, onDismissMessages)
@@ -248,7 +282,9 @@ private fun androidx.compose.foundation.layout.ColumnScope.Content(
                 if (pickupStage) {
                     PrimaryButton(
                         "Confirm pickup · ${meals(batch.totalMeals)}",
-                        onClick = { open(Sheet.PICKUP) },
+                        onClick = {
+                            if (hasLocation) open(Sheet.PICKUP) else { openPickupAfterPermission = true; askForLocation() }
+                        },
                         icon = Icons.Default.Check,
                         modifier = Modifier.fillMaxWidth(),
                     )
@@ -288,7 +324,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.Content(
 }
 
 @Composable
-private fun Hero(batch: DeliveryBatch) {
+private fun Hero(batch: DeliveryBatch, sharing: Boolean) {
     val x = LunchTheme.extras
     val step = when (batch.status) {
         BatchStatus.UNASSIGNED, BatchStatus.ASSIGNED -> 0
@@ -313,6 +349,17 @@ private fun Hero(batch: DeliveryBatch) {
                     "${batch.orders.size} order${if (batch.orders.size == 1) "" else "s"} · ${prettyDate(batch.deliveryDate)}",
                     style = MaterialTheme.typography.bodyMedium, color = Palette.Cream.copy(alpha = 0.8f),
                 )
+            }
+        }
+        if (sharing) {
+            Spacer(Modifier.height(12.dp))
+            Row(
+                Modifier.clip(CircleShape).background(Color.White.copy(alpha = 0.14f)).padding(horizontal = 12.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                com.metech.lunch.core.ui.PulseDot(x.saffron, pulse = true, size = 8.dp)
+                Spacer(Modifier.width(8.dp))
+                Text("Sharing live location with the kitchen", color = Palette.Cream, style = MaterialTheme.typography.labelLarge)
             }
         }
         Spacer(Modifier.height(18.dp))

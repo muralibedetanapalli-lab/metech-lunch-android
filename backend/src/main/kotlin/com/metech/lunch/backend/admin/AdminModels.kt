@@ -237,3 +237,34 @@ data class OverviewView(
 
 @Serializable
 data class AuditEntry(val id: Long, val actorName: String?, val action: String, val entity: String, val entityId: String, val details: String?, val createdAt: String)
+
+@Serializable
+data class TrackedLocation(
+    val latitude: Double,
+    val longitude: Double,
+    val accuracyMeters: Float? = null,
+    val speedMps: Float? = null,
+    val recordedAt: String,
+)
+
+@Serializable
+data class TrackingBatch(
+    val id: String,
+    val status: BatchStatus,
+    val partnerName: String?,
+    val partnerPhone: String?,
+    val pickedUpAt: String?,
+    val totalOrders: Int,
+    val deliveredOrders: Int,
+)
+
+/** One order's delivery state for the live map. [live] is true while its meals are on the road. */
+@Serializable
+data class OrderTracking(
+    val order: AdminOrder,
+    val batch: TrackingBatch?,
+    val live: Boolean,
+    val location: TrackedLocation?,
+    /** Fixes since pickup, oldest first (at most a few hundred). */
+    val trail: List<TrackedLocation>,
+)

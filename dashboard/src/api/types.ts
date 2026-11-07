@@ -243,3 +243,29 @@ export interface AuditEntry {
   details?: string;
   createdAt: string;
 }
+
+export interface TrackedLocation {
+  latitude: number;
+  longitude: number;
+  accuracyMeters?: number | null;
+  speedMps?: number | null;
+  recordedAt: string;
+}
+
+export interface TrackingBatch {
+  id: string;
+  status: BatchStatus;
+  partnerName?: string | null;
+  partnerPhone?: string | null;
+  pickedUpAt?: string | null;
+  totalOrders: number;
+  deliveredOrders: number;
+}
+
+export interface OrderTracking {
+  order: AdminOrder;
+  batch?: TrackingBatch | null;
+  live: boolean;
+  location?: TrackedLocation | null;
+  trail: TrackedLocation[];
+}

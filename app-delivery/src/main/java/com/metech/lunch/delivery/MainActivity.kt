@@ -37,6 +37,9 @@ import com.metech.lunch.delivery.batches.BatchDetailViewModel
 import com.metech.lunch.delivery.batches.BatchesScreen
 import com.metech.lunch.delivery.batches.BatchesViewModel
 import com.metech.lunch.delivery.login.LoginViewModel
+import com.metech.lunch.delivery.tracking.LocationSharingService
+import com.metech.lunch.core.model.BatchStatus
+import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 
@@ -115,11 +118,21 @@ private fun DeliveryApp(container: AppContainer) {
                     vm.load()
                     onPauseOrDispose { }
                 }
+                // Resume sharing after an app restart if meals are still on the road.
+                val context = LocalContext.current
+                LaunchedEffect(state.batches) {
+                    if (state.batches.any { it.status == BatchStatus.PICKED_UP || it.status == BatchStatus.IN_TRANSIT }) {
+                        LocationSharingService.start(context)
+                    }
+                }
                 BatchesScreen(
                     state,
                     onOpen = { nav.navigate(Routes.batch(it)) },
                     onRefresh = vm::load,
-                    onSignOut = { scope.launch { container.auth.logout() } },
+                    onSignOut = {
+                        LocationSharingService.stop(context)
+                        scope.launch { container.auth.logout() }
+                    },
                 )
             }
             composable(Routes.BATCH) { entry ->
