@@ -3,6 +3,7 @@ package com.metech.lunch.backend
 import com.metech.lunch.backend.admin.OrderTracking
 import com.metech.lunch.backend.payments.MockGateway
 import com.metech.lunch.backend.payments.MockWebhookBody
+import com.metech.lunch.core.model.CustomerTracking
 import com.metech.lunch.core.model.HandoverConfirmation
 import com.metech.lunch.core.model.LocationAck
 import com.metech.lunch.core.model.LocationUpdate
@@ -19,6 +20,7 @@ import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
@@ -61,6 +63,18 @@ class TrackingTest {
 
         val live = tracking()
         assertTrue(live.live)
+
+        // The customer sees the rider too, with a first name but no phone number.
+        val mine = client.get("/api/orders/${order.id}/tracking") { bearerAuth(customer) }
+        val mineText = mine.bodyAsText()
+        assertFalse(partnerPhone.removePrefix("+") in mineText)
+        val view = Json { ignoreUnknownKeys = true }.decodeFromString(CustomerTracking.serializer(), mineText)
+        assertTrue(view.live)
+        assertEquals("Ravi", view.partnerFirstName)
+        assertEquals(2, view.trail.size)
+        // Someone else's order is not found.
+        val stranger = client.login("9876543299")
+        assertEquals(HttpStatusCode.NotFound, client.get("/api/orders/${order.id}/tracking") { bearerAuth(stranger) }.status)
         assertEquals("Ravi (partner)", live.batch?.partnerName)
         assertEquals(2, live.trail.size)
         assertEquals(17.4450, live.location?.latitude)
@@ -75,6 +89,9 @@ class TrackingTest {
         val done = tracking()
         assertFalse(done.live)
         assertNull(done.location)
+        val after = client.get("/api/orders/${order.id}/tracking") { bearerAuth(customer) }.body<CustomerTracking>()
+        assertFalse(after.live)
+        assertNull(after.location)
     }
 
     @Test

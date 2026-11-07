@@ -2,6 +2,7 @@ package com.metech.lunch.customer.orders
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.metech.lunch.core.model.CustomerTracking
 import com.metech.lunch.core.model.Order
 import com.metech.lunch.core.model.OrderStatus
 import com.metech.lunch.core.network.ApiResult
@@ -39,6 +40,8 @@ class OrdersViewModel(private val api: LunchApi) : ViewModel() {
 
 data class OrderDetailState(
     val order: Order? = null,
+    /** The delivery partner's live position, while the order is on the way. */
+    val tracking: CustomerTracking? = null,
     val cancelling: Boolean = false,
     val error: String? = null,
 )
@@ -52,16 +55,39 @@ class OrderDetailViewModel(private val api: LunchApi, private val orderId: Strin
     val state: StateFlow<OrderDetailState> = _state.asStateFlow()
     private var pollJob: Job? = null
 
+    /**
+     * Keeps the screen current while it's visible: quickly while waiting for payment, the
+     * rider's position every few seconds while on the way, and slowly while waiting for pickup.
+     */
     fun startPolling() {
         if (pollJob?.isActive == true) return
         pollJob = viewModelScope.launch {
-            var attempts = 0
+            var paymentChecks = 0
             while (isActive) {
                 fetch()
-                val pending = _state.value.order?.status == OrderStatus.PENDING_PAYMENT
-                if (!pending || attempts++ > MAX_POLLS) break
-                delay(POLL_MS)
+                when (_state.value.order?.status) {
+                    OrderStatus.PENDING_PAYMENT -> {
+                        if (paymentChecks++ > MAX_POLLS) break
+                        delay(POLL_MS)
+                    }
+                    OrderStatus.OUT_FOR_DELIVERY -> repeat(TRACKING_ROUNDS) {
+                        fetchTracking()
+                        delay(TRACKING_MS)
+                    }
+                    OrderStatus.CONFIRMED, OrderStatus.PREPARING -> delay(WAITING_MS)
+                    else -> {
+                        _state.update { it.copy(tracking = null) }
+                        break
+                    }
+                }
             }
+        }
+    }
+
+    private suspend fun fetchTracking() {
+        when (val r = apiCall { api.orderTracking(orderId) }) {
+            is ApiResult.Success -> _state.update { it.copy(tracking = r.value) }
+            is ApiResult.Failure -> Unit // keep the last position; the next round tries again
         }
     }
 
@@ -89,5 +115,8 @@ class OrderDetailViewModel(private val api: LunchApi, private val orderId: Strin
     private companion object {
         const val POLL_MS = 3_000L
         const val MAX_POLLS = 100 // ~5 minutes
+        const val TRACKING_MS = 5_000L
+        const val TRACKING_ROUNDS = 3 // refresh the order itself every ~15 s
+        const val WAITING_MS = 30_000L
     }
 }

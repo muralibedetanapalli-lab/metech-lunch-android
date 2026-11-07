@@ -17,3 +17,23 @@ data class LocationUpdate(
 /** [tracking] is false once the partner has nothing on the road, so the app can stop sharing. */
 @Serializable
 data class LocationAck(val tracking: Boolean)
+
+@Serializable
+data class TrackPoint(
+    val latitude: Double,
+    val longitude: Double,
+    val accuracyMeters: Float? = null,
+    val recordedAt: String,
+)
+
+/**
+ * What a customer sees of their own order's delivery. Only filled while the order is on the
+ * road; the partner's phone number is never included.
+ */
+@Serializable
+data class CustomerTracking(
+    val live: Boolean,
+    val partnerFirstName: String? = null,
+    val location: TrackPoint? = null,
+    val trail: List<TrackPoint> = emptyList(),
+)

@@ -69,6 +69,7 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.coil.compose)
     implementation(libs.androidx.browser)
+    implementation(libs.osmdroid.android)
 
     debugImplementation(libs.compose.ui.tooling)
     testImplementation(libs.junit)

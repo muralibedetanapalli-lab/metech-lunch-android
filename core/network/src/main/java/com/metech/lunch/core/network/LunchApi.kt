@@ -7,6 +7,7 @@ import com.metech.lunch.core.model.DeliveryIssueReport
 import com.metech.lunch.core.model.HandoverConfirmation
 import com.metech.lunch.core.model.Office
 import com.metech.lunch.core.model.Order
+import com.metech.lunch.core.model.CustomerTracking
 import com.metech.lunch.core.model.LocationAck
 import com.metech.lunch.core.model.LocationUpdate
 import com.metech.lunch.core.model.OtpRequest
@@ -58,6 +59,10 @@ interface LunchApi {
 
     @GET("orders/{id}")
     suspend fun order(@Path("id") id: String): Order
+
+    /** Where the delivery partner is while this order is on the way. */
+    @GET("orders/{id}/tracking")
+    suspend fun orderTracking(@Path("id") id: String): CustomerTracking
 
     @POST("orders/{id}/cancel")
     suspend fun requestCancellation(@Path("id") id: String): Order

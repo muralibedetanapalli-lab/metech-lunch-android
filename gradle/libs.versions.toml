@@ -18,6 +18,7 @@ datastore = "1.1.1"
 coil = "2.7.0"
 junit = "4.13.2"
 browser = "1.8.0"
+osmdroid = "6.1.20"
 
 # Backend
 ktor = "3.1.3"
@@ -30,6 +31,7 @@ embeddedPostgres = "2.1.0"
 
 [libraries]
 androidx-browser = { module = "androidx.browser:browser", version.ref = "browser" }
+osmdroid-android = { module = "org.osmdroid:osmdroid-android", version.ref = "osmdroid" }
 
 ktor-server-core = { module = "io.ktor:ktor-server-core", version.ref = "ktor" }
 ktor-server-netty = { module = "io.ktor:ktor-server-netty", version.ref = "ktor" }

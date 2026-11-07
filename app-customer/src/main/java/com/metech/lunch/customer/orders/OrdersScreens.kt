@@ -211,6 +211,7 @@ fun OrderDetailScreen(
             ) {
                 StatusHero(order)
                 if (order.status in TRACKED) Tracker(order.status)
+                if (order.status == OrderStatus.OUT_FOR_DELIVERY) LiveDelivery(state.tracking)
                 if (order.deliveryOtp != null && order.status in OTP_VISIBLE) HandoverCode(order.deliveryOtp!!)
 
                 LunchCard {
@@ -461,3 +462,53 @@ private fun prettyDate(iso: String): String = runCatching {
         else -> d.format(DateTimeFormatter.ofPattern("EEE, d MMM"))
     }
 }.getOrDefault(iso)
+
+/** The rider on a map while the meals are on the way, with how fresh the position is. */
+@Composable
+private fun LiveDelivery(tracking: com.metech.lunch.core.model.CustomerTracking?) {
+    val name = tracking?.partnerFirstName ?: "Your delivery partner"
+    val location = tracking?.location
+    LunchCard(padding = PaddingValues(0.dp)) {
+        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            com.metech.lunch.core.ui.PulseDot(LunchTheme.extras.saffron, pulse = true, size = 10.dp)
+            Spacer(Modifier.width(10.dp))
+            Column(Modifier.weight(1f)) {
+                Text("$name is on the way", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    if (location != null) "Live location · updated ${secondsAgo(location.recordedAt)}"
+                    else "Waiting for $name's location…",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Text("🛵", style = MaterialTheme.typography.headlineSmall)
+        }
+        if (location != null) {
+            RiderMap(
+                location = location,
+                trail = tracking.trail,
+                modifier = Modifier.fillMaxWidth().height(260.dp)
+                    .padding(start = 12.dp, end = 12.dp, bottom = 12.dp)
+                    .clip(MaterialTheme.shapes.medium),
+            )
+        } else {
+            Box(
+                Modifier.fillMaxWidth().height(120.dp).padding(start = 12.dp, end = 12.dp, bottom = 12.dp)
+                    .clip(MaterialTheme.shapes.medium).shimmer(MaterialTheme.shapes.medium),
+                contentAlignment = Alignment.Center,
+            ) { Text("📡", style = MaterialTheme.typography.headlineMedium) }
+        }
+    }
+}
+
+/** "just now", "25 s ago", "3 min ago": re-read on every poll, which is often enough. */
+private fun secondsAgo(iso: String): String {
+    val seconds = runCatching { java.time.Duration.between(java.time.OffsetDateTime.parse(iso), java.time.OffsetDateTime.now()).seconds }
+        .getOrDefault(0L).coerceAtLeast(0)
+    return when {
+        seconds < 10 -> "just now"
+        seconds < 60 -> "$seconds s ago"
+        seconds < 3600 -> "${seconds / 60} min ago"
+        else -> "${seconds / 3600} h ago"
+    }
+}

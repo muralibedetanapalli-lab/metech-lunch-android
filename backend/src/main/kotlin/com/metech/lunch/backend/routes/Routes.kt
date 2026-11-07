@@ -108,6 +108,8 @@ fun Route.customerRoutes(s: Services) {
             }
             get { call.respond(s.orders.myOrders(call.userId)) }
             get("/{id}") { call.respond(s.orders.order(call.userId, call.pathParam("id"))) }
+            // Where the delivery partner is, while this order is on the way.
+            get("/{id}/tracking") { call.respond(s.tracking.customerTracking(call.userId, call.pathParam("id"))) }
             post("/{id}/cancel") { call.respond(s.orders.requestCancellation(call.userId, call.pathParam("id"))) }
         }
     }
