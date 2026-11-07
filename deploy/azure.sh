@@ -99,7 +99,13 @@ if ! az containerapp show -g "$APP_RG" -n "$APP_NAME" -o none 2>/dev/null; then
     --secrets "${SECRETS[@]}" --env-vars "${ENV_VARS[@]}" -o none
 else
   az containerapp secret set -g "$APP_RG" -n "$APP_NAME" --secrets "${SECRETS[@]}" -o none
+  BEFORE=$(az containerapp show -g "$APP_RG" -n "$APP_NAME" --query properties.latestRevisionName -o tsv)
   az containerapp update -g "$APP_RG" -n "$APP_NAME" --image "$IMAGE" --set-env-vars "${ENV_VARS[@]}" -o none
+  AFTER=$(az containerapp show -g "$APP_RG" -n "$APP_NAME" --query properties.latestRevisionName -o tsv)
+  if [ "$BEFORE" = "$AFTER" ]; then
+    # Nothing in the template changed, so no new revision: restart it so it reads the updated secrets.
+    az containerapp revision restart -g "$APP_RG" -n "$APP_NAME" --revision "$AFTER" -o none
+  fi
 fi
 
 FQDN=$(az containerapp show -g "$APP_RG" -n "$APP_NAME" --query properties.configuration.ingress.fqdn -o tsv)
